@@ -5,7 +5,7 @@ import 'package:cloudstorage/hien_thi/Hien_Thi_Tai_Lieu.dart';
 import '../chinh/luu_tru.dart';
 import '../tien_ich/tai_xuong.dart';
 import '../tien_ich/thong_bao.dart';
-
+import 'package:cloudstorage/hien_thi/Hien_Thi_Thung_Rac.dart';
 // Trang HomeScreen - Trang chủ
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -133,6 +133,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     label: 'Collection',
                     bgColor: Colors.purple[100]!,
                     iconColor: Colors.purple,
+                  ), 
+                  _buildMenuItem(
+                    icon: Icons.restore_from_trash,
+                    label: 'Thùng rác',
+                    bgColor: Colors.brown,
+                    iconColor: Colors.white,
                   ),
                 ],
               ),
@@ -232,6 +238,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               context,
               MaterialPageRoute(
                 builder: (context) => const StorageScreen(showBackButton: true),
+              ),
+            );
+            break;
+          case 'Thùng rác':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const TrashScreen(showBackButton: true),
               ),
             );
             break;
