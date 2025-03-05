@@ -2,12 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class StorageScreen extends StatelessWidget {
-  const StorageScreen({super.key});
+  final bool showBackButton;
+  
+  const StorageScreen({super.key, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: showBackButton ? IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ) : null,
+        title: const Text(
+          'My Collection',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

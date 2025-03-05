@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloudstorage/hien_thi/Hien_Thi_Anh.dart';
+import 'package:cloudstorage/hien_thi/Hien_Thi_Video.dart';
+import 'package:cloudstorage/hien_thi/Hien_Thi_Tai_Lieu.dart';
+import '../chinh/luu_tru.dart';
+import '../tien_ich/tai_xuong.dart';
+import '../tien_ich/thong_bao.dart';
 
 // Trang HomeScreen - Trang chủ
 class HomeScreen extends StatefulWidget {
@@ -55,11 +61,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.black87),
-            onPressed: () {},
+            onPressed: () {
+              showNotificationsSheet(context);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.download, color: Colors.black87),
-            onPressed: () {},
+            onPressed: () {
+              showDownloadsSheet(context);
+            },
           ),
         ],
       ),
@@ -189,21 +199,60 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required Color bgColor,
     required Color iconColor,
   }) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () {
+        // Xử lý điều hướng dựa trên label
+        switch (label) {
+          case 'Ảnh':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ImageViewScreen(),
+              ),
+            );
+            break;
+          case 'Video':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const VideoViewScreen(),
+              ),
+            );
+            break;
+          case 'Tài liệu':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DocumentViewScreen(),
+              ),
+            );
+            break;
+          case 'Collection':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StorageScreen(showBackButton: true),
+              ),
+            );
+            break;
+        }
+      },
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 40, color: iconColor),
           ),
-          child: Icon(icon, size: 40, color: iconColor),
-        ),
-        const SizedBox(height: 8),
-        Text(label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))
-      ],
+          const SizedBox(height: 8),
+          Text(label,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))
+        ],
+      ),
     );
   }
 

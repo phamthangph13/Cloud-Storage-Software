@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:lottie/lottie.dart';
-import 'package:cloudstorage/Screen/home.dart';
+import 'package:cloudstorage/man_hinh/chinh/trang_chu.dart';
 
 class IntroScreen extends StatelessWidget {
   const IntroScreen({super.key});

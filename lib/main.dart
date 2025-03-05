@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloudstorage/Screen/home.dart';
-import 'package:cloudstorage/Screen/intro.dart';
-import 'Screen/menu.dart';
+import 'package:cloudstorage/man_hinh/chinh/trang_chu.dart';
+import 'package:cloudstorage/man_hinh/khoi_dong/man_hinh_chao.dart';
+import 'man_hinh/chinh/menu.dart';
 
 void main() {
   runApp(const MyApp());
