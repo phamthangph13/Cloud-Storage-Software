@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import '../chinh/trang_chu.dart';
-import '../chinh/luu_tru.dart';
+import './home_khach.dart';
+import './tin_tuc.dart';
+import './gioi_thieu.dart';
+import './tim_kiem.dart';
 import '../xac_thuc/dang_nhap.dart';
-import '../chinh/nhan_ai.dart';
+import './trang_chu.dart';
+import './luu_tru.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final bool isAuthenticated;
+  const MenuScreen({super.key, this.isAuthenticated = false});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -14,20 +18,29 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   
-  final List<Widget> _pages = [
-    const HomeScreen(),
-    const StorageScreen(showBackButton: false),
-    const HomeScreen(), // Placeholder for upload button
-    const NhanAIPage(),
-    const AuthenticatorScreen(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = widget.isAuthenticated
+        ? [
+            const HomeScreen(),
+            const NewsScreen(),
+            const SearchScreen(),
+            const AboutUsScreen(),
+            const StorageScreen(showBackButton: false),
+          ]
+        : [
+            const HomeKhachScreen(),
+            const NewsScreen(),
+            const SearchScreen(),
+            const AboutUsScreen(),
+            const AuthenticatorScreen(),
+          ];
+  }
 
   void _onItemTapped(int index) {
-    if (index == 2) {
-      // Show bottom sheet when + button is tapped
-      _showUploadOptions();
-      return;
-    }
     setState(() {
       _selectedIndex = index;
     });
@@ -142,9 +155,9 @@ class _MenuScreenState extends State<MenuScreen> {
                 label: 'Home',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.folder_outlined),
-                activeIcon: Icon(Icons.folder),
-                label: 'Collection',
+                icon: Icon(Icons.newspaper_outlined),
+                activeIcon: Icon(Icons.newspaper),
+                label: 'News',
               ),
               BottomNavigationBarItem(
                 icon: Container(
@@ -158,14 +171,14 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add, color: Colors.white),
+                  child: const Icon(Icons.search, color: Colors.white),
                 ),
-                label: '',
+                label: 'Search',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.auto_awesome),
-                activeIcon: Icon(Icons.auto_awesome),
-                label: 'AI Labeling',
+                icon: Icon(Icons.info_outline),
+                activeIcon: Icon(Icons.info),
+                label: 'About Us',
               ),
               const BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),

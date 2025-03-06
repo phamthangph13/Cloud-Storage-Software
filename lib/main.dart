@@ -10,7 +10,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,27 +19,59 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MenuScreen(),
+      home: const AuthCheckScreen(),
     );
+  }
+}
+
+class AuthCheckScreen extends StatefulWidget {
+  const AuthCheckScreen({super.key});
+  @override
+  _AuthCheckScreenState createState() => _AuthCheckScreenState();
+}
+
+class _AuthCheckScreenState extends State<AuthCheckScreen> {
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthState();
+  }
+  Future<void> _checkAuthState() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('auth_token');
+    setState(() {
+      _isAuthenticated = token != null;
+      _isLoading = false;
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    return _isAuthenticated ? const MenuScreen() : const CheckFirstScreen();
   }
 }
 
 class CheckFirstScreen extends StatefulWidget {
   const CheckFirstScreen({super.key});
-
   @override
   _CheckFirstScreenState createState() => _CheckFirstScreenState();
 }
 
 class _CheckFirstScreenState extends State<CheckFirstScreen> {
   bool _isFirstTime = true;
-
   @override
   void initState() {
     super.initState();
     _checkFirstTime();
   }
-
   Future<void> _checkFirstTime() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final bool? isFirstTime = prefs.getBool('isFirstTime');
@@ -55,15 +86,8 @@ class _CheckFirstScreenState extends State<CheckFirstScreen> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
-    if (_isFirstTime == null) {
-      // Hiển thị màn hình chờ khi đang tải trạng thái
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    return _isFirstTime ? const IntroScreen() : const HomeScreen();
+    return _isFirstTime ? const IntroScreen() : const MenuScreen();
   }
 }
