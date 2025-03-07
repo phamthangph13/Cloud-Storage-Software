@@ -1,0 +1,2 @@
+C:/Users/winni/OneDrive/Desktop/Cloud-Storage-Software/android/app/.cxx/Debug/4h40674i/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/winni/OneDrive/Desktop/Cloud-Storage-Software/android/app/.cxx/Debug/4h40674i/x86_64/CMakeFiles/rebuild_cache.dir

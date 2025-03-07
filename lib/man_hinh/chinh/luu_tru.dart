@@ -78,8 +78,8 @@ class StorageScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Text('các tập tin được yêu thích', style: TextStyle(fontSize: 12, color: Colors.grey)),
+
+
                   ],
                 ),
                 leading: Icon(Icons.timelapse, color: Colors.blue.shade400, size: 28),
