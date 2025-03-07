@@ -11,7 +11,6 @@ import './mua_dung_luong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import '../../API_Services/File_services.dart';
 import 'package:http/http.dart' as http;
 
 class MenuScreen extends StatefulWidget {
@@ -393,9 +392,8 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
           ),
         );
         
-        final fileService = FileService();
-        await fileService.uploadFiles(files, _authToken ?? '');
-        
+        // Upload functionality removed
+                
         Navigator.of(context).pop(); // Dismiss loading dialog
         if (!mounted) return;
         
