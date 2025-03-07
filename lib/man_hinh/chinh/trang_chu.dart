@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloudstorage/hien_thi/Hien_Thi_Anh.dart';
 import 'package:cloudstorage/hien_thi/Hien_Thi_Video.dart';
@@ -6,7 +7,9 @@ import '../chinh/luu_tru.dart';
 import '../tien_ich/tai_xuong.dart';
 import '../tien_ich/thong_bao.dart';
 import 'package:cloudstorage/hien_thi/Hien_Thi_Thung_Rac.dart';
-// Trang HomeScreen - Trang chủ
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -15,38 +18,38 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  // Danh sách demo quảng cáo (sử dụng ảnh từ network)
-  final List<String> adImages = [
-    'https://via.placeholder.com/350x150?text=Ad+1',
-    'https://via.placeholder.com/350x150?text=Ad+2',
-    'https://via.placeholder.com/350x150?text=Ad+3',
-  ];
-
-  // Tab controller cho menu tùy chọn
+  List<String> adImages = [];
   late TabController filterTabController;
+  bool _mounted = true;  // Add this line
   int selectedTabIndex = 0;
-
-  // Tab labels for the filter options
   final List<String> filterTabs = ['Tất cả', 'Đã xem', 'Đã lưu', 'Đã tải lên'];
-
   @override
   void initState() {
     super.initState();
+    _loadAds();
     filterTabController = TabController(length: filterTabs.length, vsync: this);
   }
-
+  Future<void> _loadAds() async {
+    // Directly assign the ad image URLs
+    setState(() {
+      adImages = [
+        "assets/img/img_1.jpg",
+        "assets/img/img_2.jpg",
+        "assets/img/img_4.jpg"
+      ];
+    });
+  }
   @override
   void dispose() {
+    _mounted = false;  // Add this line
     filterTabController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FC), // Màu nền tổng thể nhẹ nhàng
+      backgroundColor: const Color(0xFFF4F7FC),
       appBar: AppBar(
-
         backgroundColor: Colors.white,
         elevation: 2,
         centerTitle: true,
@@ -73,15 +76,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-
-      // Sử dụng SingleChildScrollView để cuộn toàn bộ nội dung
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thanh tìm kiếm
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -104,8 +104,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Menu lựa chọn: Ảnh, Video, Tài liệu, Collection
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -114,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     label: 'Ảnh',
                     bgColor: Colors.blue[100]!,
                     iconColor: Colors.blue,
-
                   ),
                   _buildMenuItem(
                     icon: Icons.video_library,
@@ -133,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     label: 'Collection',
                     bgColor: Colors.purple[100]!,
                     iconColor: Colors.purple,
-                  ), 
+                  ),
                   _buildMenuItem(
                     icon: Icons.restore_from_trash,
                     label: 'Thùng rác',
@@ -142,54 +139,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
-
-              // Phần quảng cáo
-              const Text(
-                'Các quảng cáo',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 160,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: adImages.length,
-                  separatorBuilder: (context, index) =>
-                  const SizedBox(width: 10),
-                  itemBuilder: (context, index) {
-                    return Card(
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              adImages.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : CarouselSlider.builder(
+                      itemCount: adImages.length,
+                      options: CarouselOptions(
+                        autoPlay: true,
+                        enlargeCenterPage: true,
+                        aspectRatio: 16 / 9,
+                        autoPlayInterval: const Duration(seconds: 3),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Image.network(
-                        adImages[index],
-                        width: 350,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        // Thêm xử lý lỗi cho Flutter web (nếu ảnh không load được)
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 350,
-                            height: 150,
-                            color: Colors.grey,
-                            alignment: Alignment.center,
-                            child: const Text(
-                              'Không tải được ảnh',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
+                      itemBuilder: (context, index, realIndex) {
+                        if (!mounted) return Container();  // Add this check
+                        return Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Image.network(
+                            adImages[index],
+                            fit: BoxFit.cover,
+                            width: MediaQuery.of(context).size.width,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey,
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Không tải được ảnh',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
               const SizedBox(height: 30),
-
-              // Phần "Nội dung khác" được thiết kế lại
               _buildOtherContentSection(),
             ],
           ),
@@ -198,7 +185,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Hàm tiện ích xây dựng các mục menu
   Widget _buildMenuItem({
     required IconData icon,
     required String label,
@@ -207,7 +193,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }) {
     return GestureDetector(
       onTap: () {
-        // Xử lý điều hướng dựa trên label
         switch (label) {
           case 'Ảnh':
             Navigator.push(
@@ -274,12 +259,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         DefaultTabController(
           length: 2,
           child: Column(
             children: [
-              // Tab chính được thiết kế đẹp hơn (đã loại bỏ đường kẻ)
               Container(
                 height: 45,
                 decoration: BoxDecoration(
@@ -307,10 +290,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  // Remove indicator padding to eliminate the line
                   indicatorPadding: EdgeInsets.zero,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  // Remove underline
                   dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: 'Gần đây'),
@@ -319,16 +300,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Nội dung tab
               SizedBox(
-                height: 450, // Tăng chiều cao để hiển thị đầy đủ nội dung
+                height: 450,
                 child: TabBarView(
                   children: [
-                    // Tab Gần đây với thiết kế mới
                     _buildRecentTabContent(),
-
-                    // Tab Ưa thích
                     _buildFavoriteTabContent(),
                   ],
                 ),
@@ -340,11 +316,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Widget cho tab Gần đây với thiết kế mới
   Widget _buildRecentTabContent() {
     return Column(
       children: [
-        // Các nút lọc được thiết kế đẹp hơn và có thể chuyển qua lại
         Container(
           height: 45,
           margin: const EdgeInsets.only(bottom: 16),
@@ -360,8 +334,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-
-        // Nội dung Grid hiển thị các mục
         Expanded(
           child: GridView.builder(
             padding: EdgeInsets.zero,
@@ -371,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
-            itemCount: 6, // Demo với 6 mục
+            itemCount: 6,
             itemBuilder: (context, index) {
               return _buildImageContentItem(index);
             },
@@ -381,7 +353,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Widget cho tab Ưa thích
   Widget _buildFavoriteTabContent() {
     return GridView.builder(
       padding: EdgeInsets.zero,
@@ -391,14 +362,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
-      itemCount: 4, // Demo với 4 mục ưa thích
+      itemCount: 4,
       itemBuilder: (context, index) {
         return _buildImageContentItem(index, isFavorite: true);
       },
     );
   }
 
-  // Widget cho các nút filter có thể chuyển qua lại
   Widget _buildFilterButton(String label, bool isSelected, int index) {
     return Material(
       color: Colors.transparent,
@@ -434,9 +404,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Widget cho các mục nội dung dạng ảnh với góc bo tròn và menu 3 chấm
   Widget _buildImageContentItem(int index, {bool isFavorite = false}) {
-    // Tạo màu ngẫu nhiên cho demo
     final colors = [
       Colors.blue[100],
       Colors.green[100],
@@ -445,12 +413,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       Colors.red[100],
       Colors.teal[100],
     ];
-
-    // Các loại nội dung khác nhau
     final contentTypes = ['Ảnh', 'Video', 'Tài liệu', 'Collection'];
     final contentType = contentTypes[index % contentTypes.length];
-
-    // Icon tương ứng với từng loại
     final icons = [
       Icons.image,
       Icons.video_library,
@@ -462,9 +426,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          // Xử lý sự kiện khi người dùng chọn một mục
-        },
+        onTap: () {},
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
@@ -482,7 +444,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Phần ảnh/thumbnail với góc bo tròn
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -502,7 +463,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           color: Colors.black38,
                         ),
                       ),
-                      // Icon yêu thích ở góc phải
                       Positioned(
                         top: 8,
                         right: 8,
@@ -512,7 +472,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           size: 22,
                         ),
                       ),
-                      // Icon 3 chấm menu
                       Positioned(
                         top: 8,
                         left: 8,
@@ -538,7 +497,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              // Phần thông tin
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
@@ -574,7 +532,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Hiển thị bottom sheet với các tùy chọn
   void _showOptionsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -609,7 +566,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Widget cho mỗi mục tùy chọn trong sheet
   Widget _buildOptionItem(
       BuildContext context, IconData icon, String label, Color color) {
     return ListTile(
@@ -624,7 +580,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       title: Text(label),
       onTap: () {
         Navigator.pop(context);
-        // Xử lý logic tương ứng với mỗi tùy chọn
       },
     );
   }

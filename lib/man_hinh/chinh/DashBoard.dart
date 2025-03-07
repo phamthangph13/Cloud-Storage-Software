@@ -33,9 +33,71 @@ class _DashBoardState extends State<DashBoard> {
     }
   }
 
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Settings & Security'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.security),
+                title: const Text('Security Settings'),
+                subtitle: const Text('Configure 2FA, password, etc.'),
+                onTap: () {
+                  // Implement security settings
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text('Notifications'),
+                subtitle: const Text('Manage notification preferences'),
+                onTap: () {
+                  // Implement notification settings
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.storage),
+                title: const Text('Storage Management'),
+                subtitle: const Text('Manage storage preferences'),
+                onTap: () {
+                  // Implement storage management
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.blue),
+            onPressed: _showSettingsDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.blue),
+            onPressed: () {
+              // Implement profile view
+            },
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Container(
@@ -55,13 +117,30 @@ class _DashBoardState extends State<DashBoard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 40),
-                    Text(
-                      'Welcome, ${_userInfo['email'] ?? 'User'}!',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Welcome back,',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _userInfo['email']?.split('@')[0] ?? 'User',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 30),
                     _buildStorageCard(),
@@ -80,30 +159,95 @@ class _DashBoardState extends State<DashBoard> {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
+      child: Container(
         padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.blue.shade50,
+              Colors.white,
+            ],
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Storage Overview',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Storage Overview',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '70.0 GB free',
+                    style: TextStyle(color: Colors.blue.shade900, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Stack(
+              children: [
+                Container(
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Container(
+                  height: 20,
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue.shade400, Colors.blue.shade700],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 15),
-            LinearProgressIndicator(
-              value: 0.7,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '70% of 100GB used',
-              style: TextStyle(color: Colors.grey.shade600),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildStorageType(Icons.image, 'Images', '25 GB', Colors.green),
+                _buildStorageType(Icons.video_library, 'Videos', '30 GB', Colors.orange),
+                _buildStorageType(Icons.description, 'Documents', '15 GB', Colors.purple),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildStorageType(IconData icon, String label, String size, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(size, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+      ],
+    );
+  }
   }
 
   Widget _buildQuickActions() {
@@ -138,16 +282,13 @@ class _DashBoardState extends State<DashBoard> {
   Widget _buildActionButton(IconData icon, String label) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: Colors.blue.shade900),
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: Colors.blue.shade100,
+          child: Icon(icon, color: Colors.blue),
         ),
         const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(label),
       ],
     );
   }
@@ -166,33 +307,23 @@ class _DashBoardState extends State<DashBoard> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 15),
-            _buildActivityItem(
-              Icons.upload_file,
-              'Document.pdf',
-              'Uploaded 2 hours ago',
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: const Text('Document.pdf'),
+              subtitle: const Text('Uploaded 2 hours ago'),
             ),
-            _buildActivityItem(
-              Icons.folder,
-              'New Folder',
-              'Created 5 hours ago',
+            ListTile(
+              leading: const Icon(Icons.folder),
+              title: const Text('New Folder'),
+              subtitle: const Text('Created 5 hours ago'),
             ),
-            _buildActivityItem(
-              Icons.share,
-              'Project.zip',
-              'Shared yesterday',
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Project.zip'),
+              subtitle: const Text('Shared yesterday'),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildActivityItem(IconData icon, String title, String subtitle) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      dense: true,
-    );
-  }
-}

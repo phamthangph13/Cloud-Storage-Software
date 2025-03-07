@@ -239,7 +239,7 @@ class _AuthenticatorScreenState extends State<AuthenticatorScreen> {
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    hintText: 'example@email.com',
+                    hintText: 'your_email_here@email.com',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),

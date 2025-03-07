@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloudstorage/man_hinh/chinh/trang_chu.dart';
-
+import '../chinh/menu.dart';
 class IntroScreen extends StatelessWidget {
   const IntroScreen({super.key});
 
@@ -79,14 +79,14 @@ class IntroScreen extends StatelessWidget {
         // Chuyển sang màn hình chính
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MenuScreen()),
         );
       },
       onSkip: () {
         // Bỏ qua và vào màn hình chính
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          MaterialPageRoute(builder: (context) => const MenuScreen()),
         );
       },
       showSkipButton: true,

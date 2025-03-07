@@ -55,7 +55,7 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
         ),
       );
     }
-    return _isAuthenticated ? const MenuScreen() : const CheckFirstScreen();
+    return _isAuthenticated ? const MenuScreen(isAuthenticated: true) : const CheckFirstScreen();
   }
 }
 
