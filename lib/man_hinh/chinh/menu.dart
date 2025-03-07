@@ -6,6 +6,9 @@ import './tim_kiem.dart';
 import '../xac_thuc/dang_nhap.dart';
 import './trang_chu.dart';
 import './luu_tru.dart';
+import './DashBoard.dart';
+import './mua_dung_luong.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool isAuthenticated;
@@ -17,19 +20,31 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
-  
+  String? _authToken;
   late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+    _loadAuthToken();
+  }
+
+  Future<void> _loadAuthToken() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _authToken = prefs.getString('auth_token');
+      _initializePages();
+    });
+  }
+
+  void _initializePages() {
     _pages = widget.isAuthenticated
         ? [
             const HomeScreen(),
-            const NewsScreen(),
-            const SearchScreen(),
-            const AboutUsScreen(),
             const StorageScreen(showBackButton: false),
+            Container(), // Placeholder for upload options
+            const StoragePurchasePage(),
+            DashBoard(token: _authToken ?? ''),
           ]
         : [
             const HomeKhachScreen(),
@@ -57,144 +72,155 @@ class _MenuScreenState extends State<MenuScreen> {
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10),
-              width: 50,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(10),
-              ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Upload Image'),
+              onTap: () {
+                // Handle image upload
+                Navigator.pop(context);
+              },
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Upload and Create',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            ListTile(
+              leading: const Icon(Icons.video_library),
+              title: const Text('Upload Video'),
+              onTap: () {
+                // Handle video upload
+                Navigator.pop(context);
+              },
             ),
-            const SizedBox(height: 20),
-            _buildUploadOption(Icons.image, 'Upload Image', Colors.blue),
-            _buildUploadOption(Icons.video_library, 'Upload Video', Colors.red),
-            _buildUploadOption(Icons.description, 'Upload Document', Colors.green),
-            _buildUploadOption(Icons.collections, 'Create Collection', const Color.fromARGB(255, 51, 20, 192)),
-            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: const Text('Upload Document'),
+              onTap: () {
+                // Handle document upload
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.collections_bookmark_outlined),
+              title: const Text('Create Collection'),
+              onTap: () {
+                // Handle video upload
+                Navigator.pop(context);
+              },
+            ),
           ],
         ),
       ),
-    );
-  }
-  
-  Widget _buildUploadOption(IconData icon, String title, Color color) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: () {
-        Navigator.pop(context);
-        // TODO: Implement upload functionality
-      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_pages == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       body: _pages[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(15),
-            topRight: Radius.circular(15),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(15),
-            topRight: Radius.circular(15),
-          ),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.white,
-            type: BottomNavigationBarType.fixed,
-            items: <BottomNavigationBarItem>[
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.newspaper_outlined),
-                activeIcon: Icon(Icons.newspaper),
-                label: 'News',
-              ),
-              BottomNavigationBarItem(
-                icon: Container(
-                  height: 40,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue.shade400, Colors.blue.shade700],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.search, color: Colors.white),
+      bottomNavigationBar: NavigationBar(
+        height: 65,
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          if (index == 2 && widget.isAuthenticated) {
+            _showUploadOptions();
+          } else {
+            _onItemTapped(index);
+          }
+        },
+        destinations: widget.isAuthenticated
+            ? [
+                const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
                 ),
-                label: 'Search',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.info_outline),
-                activeIcon: Icon(Icons.info),
-                label: 'About Us',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Login',
-              ),
-            ],
-            currentIndex: _selectedIndex == 2 ? 0 : _selectedIndex,
-            selectedItemColor: Colors.blue.shade700,
-            unselectedItemColor: Colors.grey,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontSize: 11),
-            onTap: _onItemTapped,
-            elevation: 0,
-          ),
-        ),
+                const NavigationDestination(
+                  icon: Icon(Icons.folder_outlined),
+                  selectedIcon: Icon(Icons.folder),
+                  label: 'Storage',
+                ),
+                NavigationDestination(
+                  icon: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.upload_outlined, color: Colors.white),
+                  ),
+                  selectedIcon: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade700,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.upload, color: Colors.white),
+                  ),
+                  label: '',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.info_outlined),
+                  selectedIcon: Icon(Icons.shopping_bag_outlined),
+                  label: 'Purchase',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.person_outlined),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Profile',
+                ),
+              ]
+            : const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.newspaper_outlined),
+                  selectedIcon: Icon(Icons.newspaper),
+                  label: 'News',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.search_outlined),
+                  selectedIcon: Icon(Icons.search),
+                  label: 'Search',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.info_outlined),
+                  selectedIcon: Icon(Icons.info),
+                  label: 'About',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.login_outlined),
+                  selectedIcon: Icon(Icons.login),
+                  label: 'Login',
+                ),
+              ],
       ),
     );
   }
