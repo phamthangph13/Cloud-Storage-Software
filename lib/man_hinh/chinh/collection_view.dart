@@ -414,11 +414,7 @@ class _CollectionViewScreenState extends State<CollectionViewScreen> {
                             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _loadCollectionFiles,
-        child: Icon(Icons.refresh),
-        backgroundColor: Colors.blue.shade700,
-      ),
+      
     );
   }
 
