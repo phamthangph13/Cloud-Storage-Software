@@ -9,6 +9,8 @@ import '../tien_ich/thong_bao.dart';
 import 'package:cloudstorage/hien_thi/Hien_Thi_Thung_Rac.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,11 +25,51 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _mounted = true;  // Add this line
   int selectedTabIndex = 0;
   final List<String> filterTabs = ['Tất cả', 'Đã xem', 'Đã lưu', 'Đã tải lên'];
+  final _storage = FlutterSecureStorage();
+  String? _authToken; // Lưu trữ token
+  
   @override
   void initState() {
     super.initState();
     _loadAds();
+    _loadAuthToken(); // Tải token khi khởi tạo
     filterTabController = TabController(length: filterTabs.length, vsync: this);
+  }
+  
+  // Phương thức tải token từ secure storage
+  Future<void> _loadAuthToken() async {
+    try {
+      // Thử dùng secure storage trước
+      _authToken = await _storage.read(key: 'auth_token');
+      print('Auth token loaded from secure storage: ${_authToken?.isEmpty ?? true ? 'EMPTY' : 'NOT EMPTY'}');
+      
+      // Nếu đọc được token, lưu nó vào SharedPreferences để dự phòng
+      if (_authToken != null && _authToken!.isNotEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', _authToken!);
+          print('Token saved to SharedPreferences');
+        } catch (e) {
+          print('Failed to save token to SharedPreferences: $e');
+        }
+      }
+    } catch (e) {
+      print('Error loading auth token from secure storage: $e');
+      // Fallback to shared preferences if secure storage fails
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        _authToken = prefs.getString('auth_token');
+        if (_authToken != null && _authToken!.isNotEmpty) {
+          print('Loading token from SharedPreferences: ${_authToken!.length > 20 ? _authToken!.substring(0, 20) + '...' : _authToken}');
+          print('Token set in state: ${_authToken!.length > 20 ? _authToken!.substring(0, 20) + '...' : _authToken}');
+        } else {
+          print('No token found in SharedPreferences');
+        }
+      } catch (e2) {
+        print('SharedPreferences also failed: $e2');
+        _authToken = ''; // Default empty token
+      }
+    }
   }
   Future<void> _loadAds() async {
     // Directly assign the ad image URLs
@@ -198,7 +240,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const ImageViewScreen(),
+                builder: (context) => ImageViewScreen(
+                  token: _authToken,
+                ),
               ),
             );
             break;

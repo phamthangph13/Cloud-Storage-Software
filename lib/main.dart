@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: const AuthCheckScreen(),
     );
-  }
+  } 
 }
 
 class AuthCheckScreen extends StatefulWidget {

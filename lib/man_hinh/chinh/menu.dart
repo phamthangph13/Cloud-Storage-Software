@@ -18,7 +18,7 @@ class MenuScreen extends StatefulWidget {
   final bool isAuthenticated;
   const MenuScreen({super.key, this.isAuthenticated = false});
 
-  @override
+  @override 
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
@@ -71,7 +71,11 @@ class _MenuScreenState extends State<MenuScreen> {
       
       if (token == null || token.isEmpty) {
         print("No token found in SharedPreferences");
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+        
+        // Only redirect to login if the widget is supposed to be authenticated
+        if (widget.isAuthenticated) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+        }
         return;
       }
       
@@ -84,7 +88,10 @@ class _MenuScreenState extends State<MenuScreen> {
       });
     } catch (e) {
       print("Error loading auth token: $e");
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+      // Only redirect to login on error if the widget is supposed to be authenticated
+      if (widget.isAuthenticated) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+      }
     }
   }
 
