@@ -1,347 +1,158 @@
-# Authentication API Documentation
-
-This document provides detailed information about the authentication service endpoints.
+# Cloud Storage API Documentation
 
 ## Base URL
+```
+http://localhost:5000
+```
 
+## Authentication API Endpoints
+
+### Authentication Base URL
 ```
 http://localhost:5000/api/auth
 ```
 
-## Authentication
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/register` | POST | Register new user with email verification |
+| `/login` | POST | Authenticate user and get JWT token |
+| `/forgot-password` | POST | Initiate password reset process |
+| `/reset-password` | POST | Complete password reset |
+| `/verify-email-link` | GET | Verify email through direct link |
 
-Most endpoints require JWT authentication. Include the JWT token in the Authorization header:
-
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-## Endpoints
-
-### 1. Register User
-
-**Endpoint:** `POST /register`
-
-**Description:** Register a new user account.
-
-**Request Body:**
+**Request/Response Examples:**
 ```json
+// Register Request
 {
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+
+// Login Response
+{
+  "access_token": "jwt_token",
+  "user": {
     "email": "user@example.com",
-    "password": "YourPassword123"
+    "storage_used": 0,
+    "storage_limit": 24576
+  }
 }
 ```
 
-**Requirements:**
-- Email must be in valid format
-- Password must be at least 8 characters and contain both letters and numbers
+## File Storage API Endpoints
 
-**Response:**
-- Success (201):
-```json
-{
-    "message": "User registered successfully. Please check your email to verify your account."
-}
-```
-- Error (400/409):
-```json
-{
-    "message": "Error message"
-}
-```
-
-### 2. Verify Email
-
-#### Method 1: Via API
-
-**Endpoint:** `POST /verify-email`
-
-**Request Body:**
-```json
-{
-    "token": "verification_token"
-}
-```
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "Email verified successfully"
-}
-```
-
-#### Method 2: Via Link
-
-**Endpoint:** `GET /verify-email-link?token=verification_token`
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "Email verified successfully. You can now log in."
-}
-```
-
-### 3. Login
-
-**Endpoint:** `POST /login`
-
-**Request Body:**
-```json
-{
-    "email": "user@example.com",
-    "password": "YourPassword123"
-}
-```
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "Login successful",
-    "access_token": "jwt_token",
-    "user": {
-        "email": "user@example.com",
-        "is_active": true
-    }
-}
-```
-
-### 4. Forgot Password
-
-**Endpoint:** `POST /forgot-password`
-
-**Request Body:**
-```json
-{
-    "email": "user@example.com"
-}
-```
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "If your email is registered, you will receive a password reset link"
-}
-```
-
-### 5. Reset Password
-
-**Endpoint:** `POST /reset-password`
-
-**Request Body:**
-```json
-{
-    "token": "reset_token",
-    "new_password": "NewPassword123"
-}
-```
-
-**Requirements:**
-- New password must be at least 8 characters and contain both letters and numbers
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "Password reset successful"
-}
-```
-
-### 6. Get User Information
-
-**Endpoint:** `GET /user`
-
-**Authentication Required:** Yes (JWT Token)
-
-**Response:**
-- Success (200):
-```json
-{
-    "user": {
-        "email": "user@example.com",
-        "is_active": true
-    }
-}
-```
-
-## Error Responses
-
-The API uses standard HTTP status codes:
-
-- 200: Success
-- 201: Created
-- 400: Bad Request
-- 401: Unauthorized
-- 404: Not Found
-- 409: Conflict
-
-Error responses follow this format:
-```json
-{
-    "message": "Description of the error"
-}
-```
-
-# File Management API Documentation
-
-## Base URL
-
+### File Operations Base URL
 ```
 http://localhost:5000/api/files
 ```
 
-## Authentication
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/upload` | POST | Upload single file (Max 2GB) |
+| `/upload-multiple` | POST | Upload multiple files |
+| `/files/{file_id}` | GET | Download file |
+| `/files/{file_id}` | DELETE | Delete file |
+| `/files` | GET | List all files with metadata |
 
-All endpoints require JWT authentication. Include the JWT token in the Authorization header:
-
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-## Supported File Types
-
-### Images
-- png, jpg, jpeg, gif, bmp, webp, svg
-
-### Videos
-- mp4, avi, mov, wmv, flv, mkv, webm
-
-### Documents
-- pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv, json, xml
-
-## Endpoints
-
-### 1. Upload File
-
-**Endpoint:** `POST /upload`
-
-**Authentication Required:** Yes (JWT Token)
-
-**Request Body (multipart/form-data):**
-```
-file: File (required)
-description: String (optional)
-```
-
-**Response:**
-- Success (200):
+**File Upload Request:**
 ```json
 {
-    "message": "File uploaded successfully",
-    "file": {
-        "id": "file_id",
-        "filename": "original_filename",
-        "stored_filename": "unique_filename",
-        "file_type": "image|video|document|other",
-        "file_size": 12345,
-        "upload_date": "2023-01-01T00:00:00",
-        "description": "file description",
-        "user_id": "user_id",
-        "download_url": "/api/files/download/file_id"
+  "file": "<binary_data>",
+  "tags": ["document", "important"],
+  "storage_path": "/documents"
+}
+```
+
+**File Metadata Response:**
+```json
+{
+  "file_id": "5f9d7a2b",
+  "filename": "report.pdf",
+  "size": 1548921,
+  "md5_hash": "a3b9c7d8e1f2g3h4i5j",
+  "upload_date": "2024-03-15T09:30:00Z",
+  "storage_location": "mongodb://..."
+}
+```
+
+## Collection Management API Endpoints
+
+### Collections Base URL
+```
+http://localhost:5000/api/collections
+```
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Get all collections for the current user |
+| `/` | POST | Create a new collection |
+| `/{collection_id}` | GET | Get details of a specific collection |
+| `/{collection_id}` | PUT | Rename a collection |
+| `/{collection_id}` | DELETE | Delete a collection |
+
+**Collection Creation Request:**
+```json
+{
+  "name": "My Documents"
+}
+```
+
+**Collection Response:**
+```json
+{
+  "collection": {
+    "id": "64a7b3c2d1e0f",
+    "name": "My Documents",
+    "owner_id": "user123",
+    "created_at": "2024-03-15T10:30:00Z",
+    "updated_at": "2024-03-15T10:30:00Z"
+  }
+}
+```
+
+**Collections List Response:**
+```json
+{
+  "collections": [
+    {
+      "id": "64a7b3c2d1e0f",
+      "name": "My Documents",
+      "owner_id": "user123",
+      "created_at": "2024-03-15T10:30:00Z",
+      "updated_at": "2024-03-15T10:30:00Z"
+    },
+    {
+      "id": "75b8c4d3e2f1g",
+      "name": "Photos",
+      "owner_id": "user123",
+      "created_at": "2024-03-16T14:20:00Z",
+      "updated_at": "2024-03-16T14:20:00Z"
     }
+  ]
 }
 ```
 
-### 2. Download File
+## Error Codes
 
-**Endpoint:** `GET /download/{file_id}`
+| Code | Meaning | Typical Fix |
+|------|---------|-------------|
+| 400 | Invalid request format | Check request body |
+| 401 | Missing/invalid JWT | Add Authorization header |
+| 404 | Resource not found | Verify resource ID |
+| 413 | Payload too large | Reduce file size |
+| 500 | Server error | Retry with exponential backoff |
 
-**Authentication Required:** Yes (JWT Token)
+## Storage Implementation Details
+- **MongoDB GridFS** for large file storage
+- Automatic MD5 hash generation
+- File versioning support
+- Storage quota enforcement
+- Background cleanup processes
+- Collections for organizing files
+- User-specific access control
 
-**Response:**
-- Success (200): File download starts
-- Error (404): File not found
-- Error (403): Permission denied
-
-### 3. List Files
-
-**Endpoint:** `GET /files`
-
-**Authentication Required:** Yes (JWT Token)
-
-**Query Parameters:**
-- type: Filter by file type (image, video, document)
-- page: Page number (default: 1)
-- per_page: Items per page (default: 10)
-
-**Response:**
-- Success (200):
-```json
-{
-    "files": [
-        {
-            "id": "file_id",
-            "filename": "original_filename",
-            "stored_filename": "unique_filename",
-            "file_type": "image|video|document|other",
-            "file_size": 12345,
-            "upload_date": "2023-01-01T00:00:00",
-            "description": "file description",
-            "user_id": "user_id",
-            "download_url": "/api/files/download/file_id"
-        }
-    ],
-    "total": 100,
-    "page": 1,
-    "per_page": 10,
-    "pages": 10
-}
-```
-
-### 4. Get File Details
-
-**Endpoint:** `GET /files/{file_id}`
-
-**Authentication Required:** Yes (JWT Token)
-
-**Response:**
-- Success (200):
-```json
-{
-    "id": "file_id",
-    "filename": "original_filename",
-    "stored_filename": "unique_filename",
-    "file_type": "image|video|document|other",
-    "file_size": 12345,
-    "upload_date": "2023-01-01T00:00:00",
-    "description": "file description",
-    "user_id": "user_id",
-    "download_url": "/api/files/download/file_id"
-}
-```
-
-### 5. Delete File
-
-**Endpoint:** `DELETE /files/{file_id}`
-
-**Authentication Required:** Yes (JWT Token)
-
-**Response:**
-- Success (200):
-```json
-{
-    "message": "File deleted successfully"
-}
-```
-
-## Notes
-
-1. All tokens (verification, reset) have expiration times:
-   - Email verification tokens: 24 hours
-   - Password reset tokens: 1 hour
-
-2. Users must verify their email before they can log in
-
-3. For security reasons, some endpoints (like forgot-password) don't reveal whether a user exists
-
-4. All passwords must meet minimum security requirements
-
-5. File Management Notes:
-   - Files are stored in type-specific directories (images, videos, documents)
-   - Each file is assigned a unique filename to prevent conflicts
-   - Users can only access and manage their own files
-   - File size limits may apply (check with system administrator)
-   - Supported file types are strictly enforced
+## Rate Limits
+- 100 requests/minute per IP
+- 10 concurrent uploads/user
+- 2GB max file size
+- 50 collections per user

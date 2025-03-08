@@ -14,6 +14,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../API_Services/File_services.dart';
 import '../../API_Services/Auth_services.dart';
+import '../../API_Services/Collection_services.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool isAuthenticated;
@@ -180,7 +181,7 @@ class _MenuScreenState extends State<MenuScreen> {
             color: Colors.purple,
             onTap: () {
               Navigator.pop(context);
-              // Handle collection creation
+              _showCreateCollectionDialog();
             },
           ),
         ],
@@ -560,6 +561,197 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
   if (Navigator.canPop(context)) {
     Navigator.pop(context); // Close the bottom sheet
   }
+}
+
+void _showCreateCollectionDialog() {
+  final TextEditingController nameController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 10,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: 5,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                    margin: const EdgeInsets.only(bottom: 20, left: 150, right: 150),
+                  ),
+                  const Text(
+                    'Tạo bộ sưu tập mới',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: 'Tên bộ sưu tập',
+                        prefixIcon: Icon(Icons.folder, color: Colors.purple[400]),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Vui lòng nhập tên bộ sưu tập';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (formKey.currentState!.validate()) {
+                        try {
+                          // Show loading indicator
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return Center(
+                                child: Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(),
+                                      SizedBox(height: 16),
+                                      Text('Đang tạo bộ sưu tập...'),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                          
+                          // Create collection
+                          final collectionService = CollectionService();
+                          final result = await collectionService.createCollection(
+                            nameController.text.trim(),
+                            _authToken!,
+                          );
+                          
+                          // Dismiss loading dialog
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          }
+                          
+                          if (!mounted) return;
+                          
+                          // Close the input dialog
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          }
+                          
+                          // Show success message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Đã tạo bộ sưu tập "${nameController.text.trim()}" thành công'),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: const EdgeInsets.all(10),
+                            ),
+                          );
+                        } catch (e) {
+                          // Dismiss loading dialog
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          }
+                          
+                          if (!mounted) return;
+                          
+                          // Show error message
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Lỗi: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              margin: const EdgeInsets.all(10),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: const Text(
+                      'Tạo bộ sưu tập',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Hủy bỏ',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ),
+  );
 }
 
   @override
