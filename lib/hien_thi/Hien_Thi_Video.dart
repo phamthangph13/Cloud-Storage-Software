@@ -15,7 +15,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class VideoViewScreen extends StatefulWidget {
+class VideoViewScreen extends StatefulWidget { 
   final bool showBackButton;
   final String token;
   
@@ -577,46 +577,101 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                 // Implement favorite
                 break;
               case 'trash':
-                // Implement move to trash
-                break;
-              case 'download':
-                final tempDir = await getTemporaryDirectory();
-                final savePath = '${tempDir.path}/${item['filename']}';
-                
-                // Sử dụng token đã lấy ở trên
-                if (token.isEmpty && !item['id'].toString().startsWith('demo-')) {
+                // Move file to trash
+                if (item['id'].toString().startsWith('demo-')) {
+                  // Handle demo mode
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Bạn cần đăng nhập để tải xuống')),
+                    SnackBar(content: Text('Đã chuyển video vào thùng rác (chế độ demo)')),
                   );
-                  return;
-                }
-                
-                try {
-                  // Nếu là demo data, giả lập việc tải xuống thành công
-                  if (item['id'].toString().startsWith('demo-')) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
-                    );
-                  } else {
-                    final file = await _fileService.downloadFile(
-                      item['id'], 
-                      token: token,
-                      savePath: savePath
-                    );
-                    if (file != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Không thể tải xuống tệp tin')),
-                      );
+                  
+                  // Remove from current list
+                  setState(() {
+                    _videos.removeWhere((vid) => vid['id'] == item['id']);
+                  });
+                } else {
+                  // Show confirmation dialog
+                  final shouldTrash = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Chuyển vào thùng rác'),
+                      content: Text('Bạn có chắc chắn muốn chuyển "${item['filename']}" vào thùng rác?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Hủy'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Đồng ý'),
+                        ),
+                      ],
+                    ),
+                  ) ?? false;
+                  
+                  if (!shouldTrash) return;
+                  
+                  // Show loading indicator
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text('Đang chuyển vào thùng rác...'),
+                        ],
+                      ),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                  
+                  try {
+                    final result = await _fileService.moveFileToTrash(item['id'], token: token);
+                    
+                    if (result['success'] == false) {
+                      if (result['status_code'] == 401) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi: ${result['message'] ?? "Không thể chuyển vào thùng rác"}')),
+                        );
+                      }
+                      return;
                     }
+                    
+                    // Successfully moved to trash
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Đã chuyển "${item['filename']}" vào thùng rác'),
+                        action: SnackBarAction(
+                          label: 'Hoàn tác',
+                          onPressed: () {
+                            // Implement undo functionality if desired
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Chức năng hoàn tác đang được phát triển')),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                    
+                    // Remove from current list
+                    setState(() {
+                      _videos.removeWhere((vid) => vid['id'] == item['id']);
+                    });
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi: ${e.toString()}')),
+                    );
                   }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Lỗi: ${e.toString()}')),
-                  );
                 }
             }
           },

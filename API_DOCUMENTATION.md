@@ -1,6 +1,6 @@
 # Cloud Storage Application API Documentation
 
-This documentation provides details about the available APIs in the Cloud Storage application. The APIs are organized into three main categories: Authentication, File Management, and Collection Management.
+This documentation provides details about the available APIs in the Cloud Storage application. The APIs are organized into four main categories: Authentication, File Management, Collection Management, and Trash/Restore Management.
 
 ## Base URL
 
@@ -291,18 +291,18 @@ Get details about a specific file.
 - 401 Unauthorized: Not authenticated
 - 404 Not Found: File not found
 
-### Delete File
+### Delete File (Move to Trash)
 
 ```
 DELETE /files/files/{file_id}
 ```
 
-Delete a specific file.
+Move a specific file to trash.
 
 **Response (200 OK):**
 ```json
 {
-  "message": "File deleted successfully"
+  "message": "File moved to trash"
 }
 ```
 
@@ -481,18 +481,18 @@ Update a collection's details.
 - 401 Unauthorized: Not authenticated
 - 404 Not Found: Collection not found
 
-### Delete Collection
+### Delete Collection (Move to Trash)
 
 ```
 DELETE /collections/{collection_id}
 ```
 
-Delete a specific collection.
+Move a specific collection to trash.
 
 **Response (200 OK):**
 ```json
 {
-  "message": "Collection deleted successfully"
+  "message": "Collection moved to trash"
 }
 ```
 
@@ -530,3 +530,101 @@ Get all files in a specific collection.
 **Possible Errors:**
 - 401 Unauthorized: Not authenticated
 - 404 Not Found: Collection not found
+
+## Trash and Restore Management
+
+### List Trash Items
+
+You can access trash items through any of the following endpoints:
+
+```
+GET /api/trash
+GET /api/files/trash
+GET /api/restore/trash
+GET /trash  (Redirects to /api/trash)
+```
+
+Get a list of all items in the trash for the authenticated user.
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": "trash-file-id-1",
+    "name": "example.jpg",
+    "type": "file",
+    "deleted_at": "2023-01-10T12:00:00",
+    "original_path": "/path/to/file/example.jpg",
+    "size": 1024
+  },
+  {
+    "id": "trash-collection-id-1",
+    "name": "My Collection",
+    "type": "collection",
+    "deleted_at": "2023-01-10T12:00:00"
+  }
+]
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+
+### Restore File
+
+```
+POST /api/restore/file/{file_id}
+POST /api/trash/file/{file_id}
+```
+
+Restore a file from trash.
+
+**Response (200 OK):**
+```json
+{
+  "message": "File restored successfully"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File not found in trash
+
+### Restore Collection
+
+```
+POST /api/restore/collection/{collection_id}
+POST /api/trash/collection/{collection_id}
+```
+
+Restore a collection from trash.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Collection restored successfully"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Collection not found in trash
+
+### Permanently Delete Item
+
+```
+DELETE /api/restore/trash/{item_id}
+DELETE /api/trash/{item_id}
+```
+
+Permanently delete an item from trash.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Item deleted permanently"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Item not found in trash

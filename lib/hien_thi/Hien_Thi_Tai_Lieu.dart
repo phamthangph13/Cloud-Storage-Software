@@ -5,7 +5,7 @@ import 'utils/collection_dialog.dart';
 import '../API_Services/File_services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
-import 'dart:async';
+import 'dart:async'; 
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -510,7 +510,102 @@ class _DocumentViewScreenState extends State<DocumentViewScreen> {
                 // Implement favorite
                 break;
               case 'trash':
-                // Implement move to trash
+                // Move file to trash
+                if (item['id'].toString().startsWith('demo-')) {
+                  // Handle demo mode
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đã chuyển tài liệu vào thùng rác (chế độ demo)')),
+                  );
+                  
+                  // Remove from current list
+                  setState(() {
+                    _documents.removeWhere((doc) => doc['id'] == item['id']);
+                  });
+                } else {
+                  // Show confirmation dialog
+                  final shouldTrash = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Chuyển vào thùng rác'),
+                      content: Text('Bạn có chắc chắn muốn chuyển "${item['filename']}" vào thùng rác?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Hủy'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Đồng ý'),
+                        ),
+                      ],
+                    ),
+                  ) ?? false;
+                  
+                  if (!shouldTrash) return;
+                  
+                  // Show loading indicator
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text('Đang chuyển vào thùng rác...'),
+                        ],
+                      ),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                  
+                  try {
+                    final result = await _fileService.moveFileToTrash(item['id'], token: token);
+                    
+                    if (result['success'] == false) {
+                      if (result['status_code'] == 401) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi: ${result['message'] ?? "Không thể chuyển vào thùng rác"}')),
+                        );
+                      }
+                      return;
+                    }
+                    
+                    // Successfully moved to trash
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Đã chuyển "${item['filename']}" vào thùng rác'),
+                        action: SnackBarAction(
+                          label: 'Hoàn tác',
+                          onPressed: () {
+                            // Implement undo functionality if desired
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Chức năng hoàn tác đang được phát triển')),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                    
+                    // Remove from current list
+                    setState(() {
+                      _documents.removeWhere((doc) => doc['id'] == item['id']);
+                    });
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi: ${e.toString()}')),
+                    );
+                  }
+                }
                 break;
               case 'download':
                 final tempDir = await getTemporaryDirectory();

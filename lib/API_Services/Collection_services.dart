@@ -109,4 +109,32 @@ class CollectionService {
       throw Exception('Lỗi khi lấy danh sách tệp tin trong bộ sưu tập: $e');
     }
   }
+
+  // Add this method to the CollectionService class
+  Future<Map<String, dynamic>> moveCollectionToTrash(String collectionId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/$collectionId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Authentication failed. Your session may have expired. Please log in again.',
+          'status_code': 401
+        };
+      } else {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['message'] ?? 'Failed to move collection to trash');
+      }
+    } catch (e) {
+      throw Exception('Error moving collection to trash: $e');
+    }
+  }
 } 
