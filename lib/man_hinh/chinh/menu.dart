@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../../API_Services/File_services.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool isAuthenticated;
@@ -25,6 +26,16 @@ class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   String? _authToken;
   late List<Widget> _pages = _getDefaultPages();
+
+  void _checkToken() async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('auth_token');
+  print("Token in SharedPreferences: ${token ?? 'NULL'}");
+  if (token != null && token.isNotEmpty) {
+    print("Token length: ${token.length}");
+    print("Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...");
+  }
+}
 
   List<Widget> _getDefaultPages() {
     return widget.isAuthenticated
@@ -51,14 +62,30 @@ class _MenuScreenState extends State<MenuScreen> {
   } 
 
   Future<void> _loadAuthToken() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      _authToken = prefs.getString('auth_token');
-      if (widget.isAuthenticated) {
-        _pages[4] = DashBoard(token: _authToken ?? '');
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      
+      final token = prefs.getString('auth_token');
+      print("Loading token from SharedPreferences: ${token ?? 'NULL'}");
+      
+      if (token == null || token.isEmpty) {
+        print("No token found in SharedPreferences");
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+        return;
       }
-    });
+      
+      setState(() {
+        _authToken = token;
+        print("Token set in state: ${_authToken!.substring(0, 20)}...");
+        if (widget.isAuthenticated) {
+          _pages[4] = DashBoard(token: _authToken!);
+        }
+      });
+    } catch (e) {
+      print("Error loading auth token: $e");
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
+    }
   }
 
   void _onItemTapped(int index) {
@@ -392,12 +419,44 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
           ),
         );
         
-        // Upload functionality removed
-                
+        // Initialize FileService
+        final fileService = FileService();
+        List<Map<String, dynamic>> results = [];
+        
+        // Determine appropriate tags based on file type
+        List<String> tags = [];
+        if (type == FileType.image) {
+          tags.add('image');
+        } else if (type == FileType.video) {
+          tags.add('video');
+        } else if (type == FileType.custom) {
+          tags.add('document');
+        }
+        
+        // Upload files
+        if (files.length == 1) {
+          // Upload single file
+          final result = await fileService.uploadFile(
+            files[0], 
+            _authToken ?? '',
+            tags: tags,
+          );
+          results.add(result);
+        } else {
+          // Upload multiple files
+          results = await fileService.uploadMultipleFiles(
+            files, 
+            _authToken ?? '',
+            tags: tags,
+          );
+        }
+        
         Navigator.of(context).pop(); // Dismiss loading dialog
         if (!mounted) return;
         
-        // Show success dialog
+        // Show success or error dialog based on results
+        bool hasErrors = results.any((result) => result['success'] == false);
+        
         showDialog(
           context: context,
           builder: (context) => Dialog(
@@ -407,22 +466,21 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check_circle, color: Colors.green, size: 36),
+                  Icon(
+                    hasErrors ? Icons.error_outline : Icons.check_circle_outline,
+                    color: hasErrors ? Colors.red : Colors.green,
+                    size: 60,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Tải lên thành công!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    hasErrors ? 'Tải lên thất bại' : 'Tải lên thành công',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tất cả ${files.length} file đã được tải lên thành công.',
+                    hasErrors 
+                      ? 'Có lỗi xảy ra khi tải lên file. Vui lòng thử lại sau.'
+                      : 'Tất cả ${files.length} file đã được tải lên thành công.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
@@ -430,12 +488,12 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: hasErrors ? Colors.red : Colors.green,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 45),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
-                    child: const Text('Đóng'),
+                    child: Text(hasErrors ? 'Đóng' : 'Hoàn thành'),
                   ),
                 ],
               ),
@@ -443,7 +501,8 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
           ),
         );
       } catch (e) {
-        Navigator.of(context).pop(); // Dismiss loading dialog
+        // Handle any unexpected errors
+        Navigator.of(context).pop(); // Dismiss loading dialog if still showing
         if (!mounted) return;
         
         // Show error dialog
@@ -456,22 +515,19 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.error_outline, color: Colors.red, size: 36),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 60,
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Tải lên thất bại',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'Lỗi không xác định',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Đã xảy ra lỗi trong quá trình tải lên:\n${e.toString()}',
+                    'Đã xảy ra lỗi: ${e.toString()}',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
@@ -481,8 +537,8 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 45),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
                     child: const Text('Đóng'),
                   ),
