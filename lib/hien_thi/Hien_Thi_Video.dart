@@ -16,12 +16,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class VideoViewScreen extends StatefulWidget {
   final bool showBackButton;
-  final String? token;
+  final String token;
   
   const VideoViewScreen({
     super.key, 
     this.showBackButton = true,
-    this.token,
+    required this.token,
   });
 
   @override
@@ -49,9 +49,9 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
   // Phương thức trợ giúp để lấy token
   Future<String> _getToken() async {
     // Ưu tiên sử dụng token từ widget
-    if (widget.token != null && widget.token!.isNotEmpty) {
-      print('Using token from widget: ${widget.token!.substring(0, widget.token!.length > 10 ? 10 : widget.token!.length)}...');
-      return widget.token!;
+    if (widget.token.isNotEmpty) {
+      print('Using token from widget: ${widget.token.substring(0, widget.token.length > 10 ? 10 : widget.token.length)}...');
+      return widget.token;
     }
     
     String token = '';
@@ -418,7 +418,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
   }
 
   Widget _buildVideoItem(int index, Map<String, dynamic> item) {
-    final token = widget.token ?? ''; // Lấy token từ widget
+    final token = widget.token; // Lấy token từ widget
     
     return Card(
       elevation: 1,
@@ -665,7 +665,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
   }
   
   void _playVideo(BuildContext context, Map<String, dynamic> item) {
-    final token = widget.token ?? '';
+    final token = widget.token;
     
     if (item['id'] == null) {
       ScaffoldMessenger.of(context).showSnackBar(

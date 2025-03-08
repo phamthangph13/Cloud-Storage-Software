@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
 class StoragePurchasePage extends StatefulWidget {
-  const StoragePurchasePage({super.key});
+  final String token;
+  
+  const StoragePurchasePage({super.key, required this.token});
 
   @override
   State<StoragePurchasePage> createState() => _StoragePurchasePageState();

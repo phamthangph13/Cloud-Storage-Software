@@ -137,10 +137,12 @@ class AuthService {
   }
 
   // Get user information with automatic token handling
-  Future<Map<String, dynamic>> getUserInfo() async {
+  Future<Map<String, dynamic>> getUserInfo({String? token}) async {
     try {
-      final token = await getToken();
-      if (token == null || token.isEmpty) {
+      // Get token if not provided
+      final String authToken = token ?? (await getToken() ?? '');
+      
+      if (authToken.isEmpty) {
         return {'message': 'Not authenticated'};
       }
 
@@ -148,7 +150,7 @@ class AuthService {
         Uri.parse('$baseUrl/user'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $authToken',
         },
       );
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../API_Services/Auth_services.dart';
+import './cai_dat.dart'; // Import Settings screen
 
 class DashBoard extends StatefulWidget {
-  const DashBoard({Key? key}) : super(key: key);
+  final String token;
+
+  const DashBoard({Key? key, required this.token}) : super(key: key);
 
   @override
   State<DashBoard> createState() => _DashBoardState();
@@ -21,7 +24,7 @@ class _DashBoardState extends State<DashBoard> {
 
   Future<void> _loadUserInfo() async {
     try {
-      final response = await _authService.getUserInfo();
+      final response = await _authService.getUserInfo(token: widget.token);
       setState(() {
         _userInfo = response;
         _isLoading = false;
@@ -31,48 +34,12 @@ class _DashBoardState extends State<DashBoard> {
     }
   }
 
-  void _showSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Settings & Security'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.security),
-                title: const Text('Security Settings'),
-                subtitle: const Text('Configure 2FA, password, etc.'),
-                onTap: () {
-                  // Implement security settings
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text('Notifications'),
-                subtitle: const Text('Manage notification preferences'),
-                onTap: () {
-                  // Implement notification settings
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.storage),
-                title: const Text('Storage Management'),
-                subtitle: const Text('Manage storage preferences'),
-                onTap: () {
-                  // Implement storage management
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+  // Navigate to settings screen instead of showing dialog
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsScreen(token: widget.token),
       ),
     );
   }
@@ -86,7 +53,7 @@ class _DashBoardState extends State<DashBoard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.blue),
-            onPressed: _showSettingsDialog,
+            onPressed: _navigateToSettings,
           ),
           IconButton(
             icon: const Icon(Icons.account_circle, color: Colors.blue),

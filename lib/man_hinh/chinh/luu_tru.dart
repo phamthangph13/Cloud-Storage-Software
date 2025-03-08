@@ -3,8 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 class StorageScreen extends StatelessWidget {
   final bool showBackButton;
+  final String token;
   
-  const StorageScreen({super.key, this.showBackButton = true});
+  const StorageScreen({super.key, this.showBackButton = true, required this.token});
 
   @override
   Widget build(BuildContext context) {

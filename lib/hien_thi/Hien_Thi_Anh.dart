@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../hien_thi/utils/display_utils.dart';
+import 'utils/display_utils.dart';
 import '../API_Services/File_services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -13,12 +13,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ImageViewScreen extends StatefulWidget { 
   final bool showBackButton;
-  final String? token;
+  final String token;
   
   const ImageViewScreen({
     super.key, 
     this.showBackButton = true,
-    this.token,
+    required this.token,
   });
 
   @override
@@ -46,9 +46,9 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
   // Phương thức trợ giúp để lấy token
   Future<String> _getToken() async {
     // Ưu tiên sử dụng token từ widget
-    if (widget.token != null && widget.token!.isNotEmpty) {
-      print('Using token from widget: ${widget.token!.substring(0, widget.token!.length > 10 ? 10 : widget.token!.length)}...');
-      return widget.token!;
+    if (widget.token.isNotEmpty) {
+      print('Using token from widget: ${widget.token.substring(0, widget.token.length > 10 ? 10 : widget.token.length)}...');
+      return widget.token;
     }
     
     String token = '';
@@ -396,7 +396,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
   Widget _buildImageItem(int index, Map<String, dynamic> item) {
     // Handle the image URL safely
     String imageUrl = '';
-    final token = widget.token ?? ''; // Lấy token từ widget
+    final token = widget.token; // Use non-optional token
     
     if (item['id'] != null) {
       // Check if it's a demo image
@@ -607,7 +607,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
   }
   
   void _viewImageFullScreen(BuildContext context, Map<String, dynamic> item) {
-    final token = widget.token ?? ''; // Lấy token từ widget
+    final token = widget.token; // Use non-optional token
     
     if (item['id'] == null) {
       // If no valid ID, show error message

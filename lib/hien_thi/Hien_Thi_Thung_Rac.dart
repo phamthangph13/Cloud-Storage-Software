@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../hien_thi/utils/display_utils.dart';
+import 'utils/display_utils.dart';
 
 class TrashScreen extends StatefulWidget {
   final bool showBackButton;
+  final String token;
 
-  const TrashScreen({super.key, this.showBackButton = true});
+  const TrashScreen({super.key, this.showBackButton = true, required this.token});
 
   @override
   State<TrashScreen> createState() => _TrashScreenState();
@@ -15,6 +16,9 @@ class _TrashScreenState extends State<TrashScreen> with SingleTickerProviderStat
   late AnimationController _controller;
   final List<int> _selectedItems = [];
   bool _isSelectionMode = false;
+  
+  // Access token from widget
+  String get _authToken => widget.token;
   
   // Search and sort functionality
   final TextEditingController _searchController = TextEditingController();

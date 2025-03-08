@@ -26,27 +26,9 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   String? _authToken;
-  late List<Widget> _pages = _getDefaultPages();
+  List<Widget>? _pages;
   final AuthService _authService = AuthService();
   final FileService _fileService = FileService();
-
-  List<Widget> _getDefaultPages() {
-    return widget.isAuthenticated
-        ? [
-            const HomeScreen(),
-            const StorageScreen(showBackButton: false),
-            Container(), // Placeholder for upload options
-            const StoragePurchasePage(),
-            const DashBoard(), // No longer passing token
-          ]
-        : [
-            const HomeKhachScreen(),
-            const NewsScreen(),
-            const SearchScreen(),
-            const AboutUsScreen(),
-            const AuthenticatorScreen(),
-          ];
-  }
 
   @override
   void initState() {
@@ -70,7 +52,8 @@ class _MenuScreenState extends State<MenuScreen> {
       
       setState(() {
         _authToken = token;
-        // No need to update the DashBoard component with token anymore
+        // Initialize pages with token after it's loaded
+        _pages = _getPages(token);
       });
     } catch (e) {
       // Only redirect to login on error if the widget is supposed to be authenticated
@@ -78,6 +61,43 @@ class _MenuScreenState extends State<MenuScreen> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
       }
     }
+  }
+
+  // Updated to accept token parameter
+  List<Widget> _getPages(String token) {
+    return widget.isAuthenticated
+        ? [
+            HomeScreen(token: token),
+            StorageScreen(showBackButton: false, token: token),
+            Container(), // Placeholder for upload options
+            StoragePurchasePage(token: token),
+            DashBoard(token: token),
+          ]
+        : [
+            const HomeKhachScreen(),
+            const NewsScreen(),
+            const SearchScreen(),
+            const AboutUsScreen(),
+            const AuthenticatorScreen(),
+          ];
+  }
+
+  List<Widget> _getDefaultPages() {
+    return widget.isAuthenticated
+        ? [
+            const Center(child: CircularProgressIndicator()), // Loading placeholder
+            const Center(child: CircularProgressIndicator()),
+            Container(), // Placeholder for upload options
+            const Center(child: CircularProgressIndicator()),
+            const Center(child: CircularProgressIndicator()),
+          ]
+        : [
+            const HomeKhachScreen(),
+            const NewsScreen(),
+            const SearchScreen(),
+            const AboutUsScreen(),
+            const AuthenticatorScreen(),
+          ];
   }
 
   void _onItemTapped(int index) {
@@ -544,16 +564,11 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
 
   @override
   Widget build(BuildContext context) {
-    if (_pages == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    // Use loading pages if token is being loaded
+    final pages = (_pages != null) ? _pages! : _getDefaultPages();
 
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         height: 65,
         selectedIndex: _selectedIndex,

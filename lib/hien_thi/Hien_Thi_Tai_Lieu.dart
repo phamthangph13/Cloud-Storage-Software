@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../hien_thi/utils/display_utils.dart';
+import 'utils/display_utils.dart';
 
 class DocumentViewScreen extends StatefulWidget {
   final bool showBackButton;
+  final String token;
   
-  const DocumentViewScreen({super.key, this.showBackButton = true});
+  const DocumentViewScreen({super.key, this.showBackButton = true, required this.token});
 
   @override
   State<DocumentViewScreen> createState() => _DocumentViewScreenState();
@@ -16,6 +17,9 @@ class _DocumentViewScreenState extends State<DocumentViewScreen> {
   bool _isSearching = false;
   String _searchQuery = '';
   SortOption _currentSortOption = SortOption.dateNewest;
+  
+  // Access token from widget
+  String get _authToken => widget.token;
   
   // Demo data for documents
   final List<Map<String, dynamic>> _documents = List.generate(

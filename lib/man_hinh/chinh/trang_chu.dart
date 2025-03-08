@@ -13,77 +13,45 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String token;
+  
+  const HomeScreen({super.key, required this.token});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  List<String> adImages = [];
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+  final List<String> filterTabs = ['All', 'Image', 'Video', 'Document', 'Audio'];
   late TabController filterTabController;
-  bool _mounted = true;  // Add this line
+  List<String> adImages = [];
+  bool showWelcomeCard = true;
   int selectedTabIndex = 0;
-  final List<String> filterTabs = ['Tất cả', 'Đã xem', 'Đã lưu', 'Đã tải lên'];
-  final _storage = FlutterSecureStorage();
-  String? _authToken; // Lưu trữ token
+  
+  // Store received token
+  String get _authToken => widget.token;
   
   @override
   void initState() {
     super.initState();
     _loadAds();
-    _loadAuthToken(); // Tải token khi khởi tạo
     filterTabController = TabController(length: filterTabs.length, vsync: this);
   }
   
-  // Phương thức tải token từ secure storage
-  Future<void> _loadAuthToken() async {
-    try {
-      // Thử dùng secure storage trước
-      _authToken = await _storage.read(key: 'auth_token');
-      print('Auth token loaded from secure storage: ${_authToken?.isEmpty ?? true ? 'EMPTY' : 'NOT EMPTY'}');
-      
-      // Nếu đọc được token, lưu nó vào SharedPreferences để dự phòng
-      if (_authToken != null && _authToken!.isNotEmpty) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', _authToken!);
-          print('Token saved to SharedPreferences');
-        } catch (e) {
-          print('Failed to save token to SharedPreferences: $e');
-        }
-      }
-    } catch (e) {
-      print('Error loading auth token from secure storage: $e');
-      // Fallback to shared preferences if secure storage fails
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        _authToken = prefs.getString('auth_token');
-        if (_authToken != null && _authToken!.isNotEmpty) {
-          print('Loading token from SharedPreferences: ${_authToken!.length > 20 ? _authToken!.substring(0, 20) + '...' : _authToken}');
-          print('Token set in state: ${_authToken!.length > 20 ? _authToken!.substring(0, 20) + '...' : _authToken}');
-        } else {
-          print('No token found in SharedPreferences');
-        }
-      } catch (e2) {
-        print('SharedPreferences also failed: $e2');
-        _authToken = ''; // Default empty token
-      }
-    }
-  }
+  // Remove the token loading since we now get it from props
   Future<void> _loadAds() async {
     // Directly assign the ad image URLs
     setState(() {
       adImages = [
         "assets/img/img_1.jpg",
         "assets/img/img_2.jpg",
-        "assets/img/img_4.jpg"
+        "assets/img/img_3.jpg",
       ];
     });
   }
+
   @override
   void dispose() {
-    _mounted = false;  // Add this line
     filterTabController.dispose();
     super.dispose();
   }
@@ -250,7 +218,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const VideoViewScreen(),
+                builder: (context) => VideoViewScreen(
+                  token: _authToken,
+                ),
               ),
             );
             break;
@@ -258,7 +228,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const DocumentViewScreen(),
+                builder: (context) => DocumentViewScreen(
+                  token: _authToken,
+                ),
               ),
             );
             break;
@@ -266,7 +238,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const StorageScreen(showBackButton: true),
+                builder: (context) => StorageScreen(
+                  showBackButton: true,
+                  token: _authToken,
+                ),
               ),
             );
             break;
@@ -274,7 +249,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const TrashScreen(showBackButton: true),
+                builder: (context) => TrashScreen(
+                  showBackButton: true,
+                  token: _authToken,
+                ),
               ),
             );
             break;
