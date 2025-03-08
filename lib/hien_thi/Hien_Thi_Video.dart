@@ -146,7 +146,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
       if (_debugMode) print('Attempting to fetch videos from API...');
       print('Using API endpoint for videos: ${FileService.filesUrl}?type=video&page=$_currentPage&per_page=20');
       
-      Future<List<Map<String, dynamic>>> videoFilesFuture = _fileService.getVideoFiles(token, page: _currentPage);
+      Future<List<Map<String, dynamic>>> videoFilesFuture = _fileService.getVideoFiles(token: token, page: _currentPage);
       final videoFiles = await videoFilesFuture.timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -447,7 +447,7 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                         },
                       )
                     : FutureBuilder<Uint8List?>(
-                        future: _fileService.getImageBytes(item['id'], token), // Sử dụng getImageBytes để lấy thumbnail
+                        future: _fileService.getImageBytes(item['id'], token: token), // Get thumbnail
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || snapshot.data == null) {
                             return const Icon(Icons.movie, size: 40, color: Colors.blue);
@@ -581,7 +581,11 @@ class _VideoViewScreenState extends State<VideoViewScreen> {
                       SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
                     );
                   } else {
-                    final file = await _fileService.downloadFile(item['id'], token, savePath);
+                    final file = await _fileService.downloadFile(
+                      item['id'], 
+                      token: token,
+                      savePath: savePath
+                    );
                     if (file != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),

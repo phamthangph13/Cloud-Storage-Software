@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloudstorage/man_hinh/chinh/trang_chu.dart';
 import 'package:cloudstorage/man_hinh/khoi_dong/man_hinh_chao.dart';
 import 'man_hinh/chinh/menu.dart';
+import 'API_Services/Auth_services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,19 +34,23 @@ class AuthCheckScreen extends StatefulWidget {
 class _AuthCheckScreenState extends State<AuthCheckScreen> {
   bool _isLoading = true;
   bool _isAuthenticated = false;
+  final AuthService _authService = AuthService();
+  
   @override
   void initState() {
     super.initState();
     _checkAuthState();
   }
+  
   Future<void> _checkAuthState() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? token = prefs.getString('auth_token');
+    final isAuthenticated = await _authService.isAuthenticated();
+    
     setState(() {
-      _isAuthenticated = token != null;
+      _isAuthenticated = isAuthenticated;
       _isLoading = false;
     });
   }
+  
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {

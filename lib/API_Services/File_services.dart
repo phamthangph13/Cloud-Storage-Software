@@ -4,25 +4,38 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
+import 'Auth_services.dart';
 
 class FileService {
-  // Các URL API đã được xác định là hoạt động từ logs
+  // URL definitions
   static const String baseApiUrl = 'http://10.0.2.2:5000/api';
   static const String uploadUrl = '$baseApiUrl/files/upload';
   static const String filesUrl = '$baseApiUrl/files/files';
   static const String downloadBaseUrl = '$baseApiUrl/files/download';
   static const String deleteBaseUrl = '$baseApiUrl/files';
   
-  // Biến kiểm soát chế độ demo
+  // Static instance for singleton pattern
+  static final FileService _instance = FileService._internal();
+  factory FileService() => _instance;
+  FileService._internal();
+  
+  // Reference to auth service
+  final AuthService _authService = AuthService();
+  
+  // Demo mode control
   static bool _forceShowDemoMode = false;
   
   // Upload a single file with optional tags and storage path
-  Future<Map<String, dynamic>> uploadFile(File file, String token, {List<String>? tags, String? storagePath}) async {
+  Future<Map<String, dynamic>> uploadFile(
+    File file, 
+    {String? token, List<String>? tags, String? storagePath}
+  ) async {
     try {
-      print("Token being used: ${token.isEmpty ? 'EMPTY' : (token.substring(0, token.length > 20 ? 20 : token.length) + '...')}");
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
       
       // Validate token
-      if (token.isEmpty || !token.startsWith('ey')) {
+      if (authToken.isEmpty || !authToken.startsWith('ey')) {
         return {
           'success': false,
           'message': 'Invalid or missing authentication token'
@@ -33,10 +46,8 @@ class FileService {
       final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
       
       // Add authorization header with proper formatting
-      final authHeader = 'Bearer $token';
+      final authHeader = 'Bearer $authToken';
       request.headers['Authorization'] = authHeader;
-      print('Authorization header: $authHeader');
-      print('Request URL: ${request.url}');
       
       // Get file information
       final fileName = path.basename(file.path);
@@ -91,14 +102,14 @@ class FileService {
   // Upload multiple files
   Future<List<Map<String, dynamic>>> uploadMultipleFiles(
     List<File> files, 
-    String token,
-    {List<String>? tags, String? storagePath}
+    {String? token, List<String>? tags, String? storagePath}
   ) async {
-    List<Map<String, dynamic>> results = [];
-    
     try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       // Validate token
-      if (token.isEmpty || !token.startsWith('ey')) {
+      if (authToken.isEmpty || !authToken.startsWith('ey')) {
         return [{
           'success': false,
           'message': 'Authentication token is required'
@@ -109,7 +120,7 @@ class FileService {
       final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
       
       // Add authorization header
-      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Authorization'] = 'Bearer $authToken';
       
       // Add each file to request
       for (var file in files) {
@@ -163,7 +174,7 @@ class FileService {
         }];
       }
       
-      return results;
+      return [];
     } catch (e) {
       return [{
         'success': false,
@@ -172,128 +183,163 @@ class FileService {
     }
   }
 
-  // Get only image files - sử dụng API đã xác định hoạt động
-  Future<List<Map<String, dynamic>>> getImageFiles(String token, {int page = 1, int perPage = 20}) async {
-    // Nếu đã cố thử kết nối quá nhiều lần và thất bại, chuyển sang chế độ demo ngay lập tức
+  // Get only image files
+  Future<List<Map<String, dynamic>>> getImageFiles({String? token, int page = 1, int perPage = 20}) async {
     if (_forceShowDemoMode) {
-      print('⚠️ Using demo mode due to previous connection failures');
       return [];
     }
     
     try {
-      // Sử dụng URL đã được xác định là hoạt động từ logs
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       final fullUrl = '$filesUrl?type=image&page=$page&per_page=$perPage';
-      print('Using API endpoint: $fullUrl');
       
       final response = await http.get(
         Uri.parse(fullUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: _authService.getAuthHeaders(authToken),
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['files'] != null) {
-          print('API response received: ${responseData['files'].length} images');
           return List<Map<String, dynamic>>.from(responseData['files']);
         }
       } else if (response.statusCode == 401) {
-        print('Authentication failed: 401 Unauthorized');
         return [{
           'success': false,
           'message': 'Authentication failed. Your session may have expired. Please log in again.',
           'status_code': 401
         }];
       } else {
-        print('API returned error status: ${response.statusCode}');
         _forceShowDemoMode = true;
       }
       
       return [];
     } catch (e) {
-      print('Error getting image files: $e');
       _forceShowDemoMode = true;
       return [];
     }
   }
   
-  // Get only video files - sử dụng API đã xác định hoạt động
-  Future<List<Map<String, dynamic>>> getVideoFiles(String token, {int page = 1, int perPage = 20}) async {
-    // Nếu đã cố thử kết nối quá nhiều lần và thất bại, chuyển sang chế độ demo ngay lập tức
+  // Get only video files
+  Future<List<Map<String, dynamic>>> getVideoFiles({String? token, int page = 1, int perPage = 20}) async {
     if (_forceShowDemoMode) {
-      print('⚠️ Using demo mode due to previous connection failures');
       return [];
     }
     
     try {
-      // Sử dụng URL đã được xác định là hoạt động từ logs
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       final fullUrl = '$filesUrl?type=video&page=$page&per_page=$perPage';
-      print('Using API endpoint for videos: $fullUrl');
       
       final response = await http.get(
         Uri.parse(fullUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
+        headers: _authService.getAuthHeaders(authToken),
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['files'] != null) {
-          print('API response received: ${responseData['files'].length} videos');
           return List<Map<String, dynamic>>.from(responseData['files']);
         }
       } else if (response.statusCode == 401) {
-        print('Authentication failed: 401 Unauthorized');
         return [{
           'success': false,
           'message': 'Authentication failed. Your session may have expired. Please log in again.',
           'status_code': 401
         }];
-      } else {
-        print('API returned error status: ${response.statusCode}');
-        _forceShowDemoMode = true;
       }
       
       return [];
     } catch (e) {
-      print('Error getting video files: $e');
       _forceShowDemoMode = true;
       return [];
     }
   }
   
-  // Phương thức trợ giúp để xác định file hình ảnh dựa trên tên file
-  bool _isImageFile(String filename) {
-    final lowerCaseFilename = filename.toLowerCase();
-    return lowerCaseFilename.endsWith('.jpg') ||
-           lowerCaseFilename.endsWith('.jpeg') ||
-           lowerCaseFilename.endsWith('.png') ||
-           lowerCaseFilename.endsWith('.gif') ||
-           lowerCaseFilename.endsWith('.bmp') ||
-           lowerCaseFilename.endsWith('.webp');
+  // Get document files
+  Future<List<Map<String, dynamic>>> getDocumentFiles({String? token, int page = 1, int perPage = 20}) async {
+    if (_forceShowDemoMode) {
+      return [];
+    }
+    
+    try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
+      final fullUrl = '$filesUrl?type=document&page=$page&per_page=$perPage';
+      
+      final response = await http.get(
+        Uri.parse(fullUrl),
+        headers: _authService.getAuthHeaders(authToken),
+      ).timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        if (responseData['files'] != null) {
+          return List<Map<String, dynamic>>.from(responseData['files']);
+        }
+      } else if (response.statusCode == 401) {
+        return [{
+          'success': false,
+          'message': 'Authentication failed. Your session may have expired. Please log in again.',
+          'status_code': 401
+        }];
+      }
+      
+      return [];
+    } catch (e) {
+      _forceShowDemoMode = true;
+      return [];
+    }
+  }
+  
+  // Helper method to determine content type
+  MediaType _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'pdf':
+        return MediaType('application', 'pdf');
+      case 'doc':
+      case 'docx':
+        return MediaType('application', 'msword');
+      case 'xls':
+      case 'xlsx':
+        return MediaType('application', 'vnd.ms-excel');
+      case 'mp4':
+        return MediaType('video', 'mp4');
+      case 'mov':
+        return MediaType('video', 'quicktime');
+      default:
+        return MediaType('application', 'octet-stream');
+    }
   }
 
   // Download a file
-  Future<File?> downloadFile(String fileId, String token, String savePath) async {
-    // Nếu là file demo, chỉ trả về null
+  Future<File?> downloadFile(String fileId, {String? token, required String savePath}) async {
+    // If it's a demo file, just return null
     if (fileId.startsWith('demo-')) {
-      print('Requested demo file download - this is not a real file');
       return null;
     }
     
     try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       final downloadUrl = '$downloadBaseUrl/$fileId';
-      print('Attempting to download file from: $downloadUrl');
-      print('Using token: ${token.isEmpty ? 'EMPTY' : (token.substring(0, 10) + '...')}');
       
       final response = await http.get(
         Uri.parse(downloadUrl),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $authToken',
           'Accept': '*/*',
           'Content-Type': 'application/json',
         },
@@ -303,27 +349,28 @@ class FileService {
         final File file = File(savePath);
         await file.writeAsBytes(response.bodyBytes);
         return file;
-      } else {
-        print('Download failed with status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+      } else if (response.statusCode == 401) {
+        print('Authentication failed: 401 Unauthorized');
       }
       
       return null;
     } catch (e) {
-      print('Error downloading file: $e');
       return null;
     }
   }
 
   // Delete a file
-  Future<bool> deleteFile(String fileId, String token) async {
+  Future<bool> deleteFile(String fileId, {String? token}) async {
     try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       final deleteUrl = '$deleteBaseUrl/$fileId';
       final response = await http.delete(
         Uri.parse(deleteUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $authToken',
         },
       );
       
@@ -333,90 +380,33 @@ class FileService {
     }
   }
 
-  // Helper method to determine content type based on file extension
-  MediaType _getContentType(String extension) {
-    switch (extension.toLowerCase()) {
-      // Images
-      case 'jpg':
-      case 'jpeg':
-        return MediaType('image', 'jpeg');
-      case 'png':
-        return MediaType('image', 'png');
-      case 'gif':
-        return MediaType('image', 'gif');
-      case 'webp':
-        return MediaType('image', 'webp');
-      
-      // Videos
-      case 'mp4':
-        return MediaType('video', 'mp4');
-      case 'mov':
-        return MediaType('video', 'quicktime');
-      case 'avi':
-        return MediaType('video', 'x-msvideo');
-      case 'webm':
-        return MediaType('video', 'webm');
-      
-      // Documents
-      case 'pdf':
-        return MediaType('application', 'pdf');
-      case 'doc':
-        return MediaType('application', 'msword');
-      case 'docx':
-        return MediaType('application', 'vnd.openxmlformats-officedocument.wordprocessingml.document');
-      case 'xls':
-        return MediaType('application', 'vnd.ms-excel');
-      case 'xlsx':
-        return MediaType('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      case 'ppt':
-        return MediaType('application', 'vnd.ms-powerpoint');
-      case 'pptx':
-        return MediaType('application', 'vnd.openxmlformats-officedocument.presentationml.presentation');
-      case 'txt':
-        return MediaType('text', 'plain');
-      case 'csv':
-        return MediaType('text', 'csv');
-      case 'json':
-        return MediaType('application', 'json');
-      case 'xml':
-        return MediaType('application', 'xml');
-      
-      // Default
-      default:
-        return MediaType('application', 'octet-stream');
-    }
-  }
-
-  // Lấy byte data của hình ảnh để hiển thị
-  Future<Uint8List?> getImageBytes(String fileId, String token) async {
+  // Get image bytes for display
+  Future<Uint8List?> getImageBytes(String fileId, {String? token}) async {
     if (fileId.startsWith('demo-')) {
-      return null; // Với demo image, trả về null để sử dụng URL
+      return null; // For demo images, return null to use URL instead
     }
     
     try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
       final downloadUrl = '$downloadBaseUrl/$fileId';
-      print('Fetching image bytes from: $downloadUrl');
       
       final response = await http.get(
         Uri.parse(downloadUrl),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $authToken',
           'Accept': '*/*',
         },
       ).timeout(const Duration(seconds: 10));
       
       if (response.statusCode == 200) {
-        print('Successfully fetched image bytes for $fileId');
         return response.bodyBytes;
-      } else {
-        print('Failed to fetch image bytes: ${response.statusCode}');
-        if (response.statusCode == 401) {
-          print('Authentication failed when fetching image. Check token validity.');
-        }
-        return null;
+      } else if (response.statusCode == 401) {
+        print('Authentication failed when fetching image. Check token validity.');
       }
+      return null;
     } catch (e) {
-      print('Error fetching image bytes: $e');
       return null;
     }
   }

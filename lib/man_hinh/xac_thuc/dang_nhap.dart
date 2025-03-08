@@ -133,8 +133,6 @@ class _AuthenticatorScreenState extends State<AuthenticatorScreen> {
         } else if (_isLogin) {
           response = await _authService.login(email, password);
           if (response['access_token'] != null) {
-            final SharedPreferences prefs = await SharedPreferences.getInstance();
-            await prefs.setString('auth_token', response['access_token']);
             if (!mounted) return;
             Navigator.pushAndRemoveUntil(
               context,

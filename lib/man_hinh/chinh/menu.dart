@@ -13,6 +13,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../../API_Services/File_services.dart';
+import '../../API_Services/Auth_services.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool isAuthenticated;
@@ -26,16 +27,8 @@ class _MenuScreenState extends State<MenuScreen> {
   int _selectedIndex = 0;
   String? _authToken;
   late List<Widget> _pages = _getDefaultPages();
-
-  void _checkToken() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('auth_token');
-  print("Token in SharedPreferences: ${token ?? 'NULL'}");
-  if (token != null && token.isNotEmpty) {
-    print("Token length: ${token.length}");
-    print("Token first 20 chars: ${token.substring(0, token.length > 20 ? 20 : token.length)}...");
-  }
-}
+  final AuthService _authService = AuthService();
+  final FileService _fileService = FileService();
 
   List<Widget> _getDefaultPages() {
     return widget.isAuthenticated
@@ -44,7 +37,7 @@ class _MenuScreenState extends State<MenuScreen> {
             const StorageScreen(showBackButton: false),
             Container(), // Placeholder for upload options
             const StoragePurchasePage(),
-            DashBoard(token: ''),
+            const DashBoard(), // No longer passing token
           ]
         : [
             const HomeKhachScreen(),
@@ -63,15 +56,11 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Future<void> _loadAuthToken() async {
     try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
       if (!mounted) return;
       
-      final token = prefs.getString('auth_token');
-      print("Loading token from SharedPreferences: ${token ?? 'NULL'}");
+      final token = await _authService.getToken();
       
       if (token == null || token.isEmpty) {
-        print("No token found in SharedPreferences");
-        
         // Only redirect to login if the widget is supposed to be authenticated
         if (widget.isAuthenticated) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
@@ -81,13 +70,9 @@ class _MenuScreenState extends State<MenuScreen> {
       
       setState(() {
         _authToken = token;
-        print("Token set in state: ${_authToken!.substring(0, 20)}...");
-        if (widget.isAuthenticated) {
-          _pages[4] = DashBoard(token: _authToken!);
-        }
+        // No need to update the DashBoard component with token anymore
       });
     } catch (e) {
-      print("Error loading auth token: $e");
       // Only redirect to login on error if the widget is supposed to be authenticated
       if (widget.isAuthenticated) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthenticatorScreen()));
@@ -426,10 +411,6 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
           ),
         );
         
-        // Initialize FileService
-        final fileService = FileService();
-        List<Map<String, dynamic>> results = [];
-        
         // Determine appropriate tags based on file type
         List<String> tags = [];
         if (type == FileType.image) {
@@ -441,19 +422,18 @@ Future<void> _pickAndUploadFiles(FileType type, {List<String>? allowedExtensions
         }
         
         // Upload files
+        List<Map<String, dynamic>> results = [];
         if (files.length == 1) {
           // Upload single file
-          final result = await fileService.uploadFile(
-            files[0], 
-            _authToken ?? '',
+          final result = await _fileService.uploadFile(
+            files[0],
             tags: tags,
           );
           results.add(result);
         } else {
           // Upload multiple files
-          results = await fileService.uploadMultipleFiles(
-            files, 
-            _authToken ?? '',
+          results = await _fileService.uploadMultipleFiles(
+            files,
             tags: tags,
           );
         }

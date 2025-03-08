@@ -140,7 +140,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
       // Fetch images from API with timeout
       if (_debugMode) print('Attempting to fetch images from API...');
       
-      Future<List<Map<String, dynamic>>> imageFilesFuture = _fileService.getImageFiles(token, page: _currentPage);
+      Future<List<Map<String, dynamic>>> imageFilesFuture = _fileService.getImageFiles(token: token, page: _currentPage);
       final imageFiles = await imageFilesFuture.timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -435,7 +435,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                   },
                 )
               : FutureBuilder<Uint8List?>(
-                  future: _fileService.getImageBytes(item['id'], token),
+                  future: _fileService.getImageBytes(item['id'], token: token),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
@@ -523,7 +523,11 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                       SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
                     );
                   } else {
-                    final file = await _fileService.downloadFile(item['id'], token, savePath);
+                    final file = await _fileService.downloadFile(
+                      item['id'], 
+                      token: token, 
+                      savePath: savePath
+                    );
                     if (file != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
@@ -676,7 +680,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                     },
                   )
                 : FutureBuilder<Uint8List?>(
-                    future: _fileService.getImageBytes(item['id'], token),
+                    future: _fileService.getImageBytes(item['id'], token: token),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(

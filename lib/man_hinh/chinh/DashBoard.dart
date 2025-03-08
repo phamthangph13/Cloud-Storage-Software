@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../../API_Services/Auth_services.dart';
 
 class DashBoard extends StatefulWidget {
-  final String token;
-
-  const DashBoard({Key? key, required this.token}) : super(key: key);
+  const DashBoard({Key? key}) : super(key: key);
 
   @override
   State<DashBoard> createState() => _DashBoardState();
@@ -23,7 +21,7 @@ class _DashBoardState extends State<DashBoard> {
 
   Future<void> _loadUserInfo() async {
     try {
-      final response = await _authService.getUserInfo(widget.token);
+      final response = await _authService.getUserInfo();
       setState(() {
         _userInfo = response;
         _isLoading = false;
@@ -248,7 +246,6 @@ class _DashBoardState extends State<DashBoard> {
       ],
     );
   }
-  }
 
   Widget _buildQuickActions() {
     return Card(
@@ -327,3 +324,4 @@ class _DashBoardState extends State<DashBoard> {
       ),
     );
   }
+}
