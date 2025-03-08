@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       adImages = [
         "assets/img/img_1.jpg",
         "assets/img/img_2.jpg",
-        "assets/img/img_3.jpg",
+        "assets/img/img_4.jpg",
       ];
     });
   }
@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             borderRadius: BorderRadius.circular(12),
                           ),
                           clipBehavior: Clip.antiAlias,
-                          child: Image.network(
+                          child: Image.asset(
                             adImages[index],
                             fit: BoxFit.cover,
                             width: MediaQuery.of(context).size.width,
