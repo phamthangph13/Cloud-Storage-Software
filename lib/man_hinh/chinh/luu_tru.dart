@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../API_Services/Collection_services.dart';
+import 'collection_view.dart';
 
 class StorageScreen extends StatefulWidget {
   final bool showBackButton;
@@ -425,6 +426,21 @@ class _StorageScreenState extends State<StorageScreen> {
                                 dividerColor: Colors.transparent
                               ),
                               child: ExpansionTile(
+                                onExpansionChanged: (expanded) {
+                                  if (!expanded) {
+                                    // When tile is tapped but not expanding, navigate to collection
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CollectionViewScreen(
+                                          collectionId: collectionId,
+                                          collectionName: collectionName,
+                                          token: widget.token,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
                                 title: Row(
                                   children: [
                                     Container(
@@ -468,9 +484,34 @@ class _StorageScreenState extends State<StorageScreen> {
                                 children: [
                                   Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Text(
-                                      'Đang tải nội dung bộ sưu tập...',
-                                      style: TextStyle(color: Colors.grey.shade600),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => CollectionViewScreen(
+                                                  collectionId: collectionId,
+                                                  collectionName: collectionName,
+                                                  token: widget.token,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          icon: Icon(Icons.visibility),
+                                          label: Text('Xem tất cả tệp tin'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blue.shade700,
+                                            foregroundColor: Colors.white,
+                                            padding: EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   ButtonBar(

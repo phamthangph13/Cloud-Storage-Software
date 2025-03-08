@@ -1,158 +1,532 @@
-# Cloud Storage API Documentation
+# Cloud Storage Application API Documentation
+
+This documentation provides details about the available APIs in the Cloud Storage application. The APIs are organized into three main categories: Authentication, File Management, and Collection Management.
 
 ## Base URL
-```
-http://localhost:5000
-```
 
-## Authentication API Endpoints
+All endpoints are relative to the base URL of your API server.
 
-### Authentication Base URL
 ```
-http://localhost:5000/api/auth
+http://localhost:5000/api
 ```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/register` | POST | Register new user with email verification |
-| `/login` | POST | Authenticate user and get JWT token |
-| `/forgot-password` | POST | Initiate password reset process |
-| `/reset-password` | POST | Complete password reset |
-| `/verify-email-link` | GET | Verify email through direct link |
+## Authentication
 
-**Request/Response Examples:**
+All API endpoints (except for registration, login, verify-email, forgot-password, and reset-password) require authentication. To authenticate requests, include a Bearer token in the Authorization header.
+
+Example:
+```
+Authorization: Bearer <access_token>
+```
+
+### Register a new user
+
+```
+POST /auth/register
+```
+
+Register a new user account.
+
+**Request Body:**
 ```json
-// Register Request
 {
   "email": "user@example.com",
-  "password": "SecurePass123!"
+  "password": "Password123"
 }
+```
 
-// Login Response
+**Response (201 Created):**
+```json
 {
-  "access_token": "jwt_token",
+  "message": "Registration successful. Please check your email to verify your account."
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid email or password format
+- 409 Conflict: Email already exists
+
+### Verify Email
+
+```
+POST /auth/verify-email
+```
+
+Verify a user's email address using the token sent to their email.
+
+**Request Body:**
+```json
+{
+  "token": "verification-token-from-email"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully"
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid or expired token
+
+### Login
+
+```
+POST /auth/login
+```
+
+Authenticate a user and receive an access token.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "Password123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Login successful",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
-    "email": "user@example.com",
-    "storage_used": 0,
-    "storage_limit": 24576
+    "id": "user-id",
+    "email": "user@example.com"
   }
 }
 ```
 
-## File Storage API Endpoints
+**Possible Errors:**
+- 400 Bad Request: Invalid input
+- 401 Unauthorized: Invalid credentials or account not verified
 
-### File Operations Base URL
+### Forgot Password
+
 ```
-http://localhost:5000/api/files
+POST /auth/forgot-password
 ```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/upload` | POST | Upload single file (Max 2GB) |
-| `/upload-multiple` | POST | Upload multiple files |
-| `/files/{file_id}` | GET | Download file |
-| `/files/{file_id}` | DELETE | Delete file |
-| `/files` | GET | List all files with metadata |
+Request a password reset link.
 
-**File Upload Request:**
+**Request Body:**
 ```json
 {
-  "file": "<binary_data>",
-  "tags": ["document", "important"],
-  "storage_path": "/documents"
+  "email": "user@example.com"
 }
 ```
 
-**File Metadata Response:**
+**Response (200 OK):**
 ```json
 {
-  "file_id": "5f9d7a2b",
-  "filename": "report.pdf",
-  "size": 1548921,
-  "md5_hash": "a3b9c7d8e1f2g3h4i5j",
-  "upload_date": "2024-03-15T09:30:00Z",
-  "storage_location": "mongodb://..."
+  "message": "Password reset instructions sent to your email"
 }
 ```
 
-## Collection Management API Endpoints
+**Possible Errors:**
+- 400 Bad Request: Invalid input
+- 404 Not Found: User not found
 
-### Collections Base URL
+### Reset Password
+
 ```
-http://localhost:5000/api/collections
+POST /auth/reset-password
 ```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Get all collections for the current user |
-| `/` | POST | Create a new collection |
-| `/{collection_id}` | GET | Get details of a specific collection |
-| `/{collection_id}` | PUT | Rename a collection |
-| `/{collection_id}` | DELETE | Delete a collection |
+Reset a user's password using the token from the email.
 
-**Collection Creation Request:**
+**Request Body:**
 ```json
 {
-  "name": "My Documents"
+  "token": "reset-token-from-email",
+  "new_password": "NewPassword123"
 }
 ```
 
-**Collection Response:**
+**Response (200 OK):**
 ```json
 {
-  "collection": {
-    "id": "64a7b3c2d1e0f",
-    "name": "My Documents",
-    "owner_id": "user123",
-    "created_at": "2024-03-15T10:30:00Z",
-    "updated_at": "2024-03-15T10:30:00Z"
-  }
+  "message": "Password reset successfully"
 }
 ```
 
-**Collections List Response:**
+**Possible Errors:**
+- 400 Bad Request: Invalid input or token
+- 404 Not Found: User not found
+
+### Get User Information
+
+```
+GET /auth/user
+```
+
+Get the currently authenticated user's information.
+
+**Response (200 OK):**
 ```json
 {
-  "collections": [
+  "id": "user-id",
+  "email": "user@example.com"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: User not found
+
+## File Management
+
+### Upload Files
+
+```
+POST /files/upload
+```
+
+Upload one or multiple files.
+
+**Request:**
+- Content-Type: multipart/form-data
+- Form fields:
+  - `file`: File(s) to upload (can be multiple)
+  - `description` (optional): Description of the file(s)
+
+**Response (200 OK):**
+```json
+{
+  "message": "Files uploaded successfully",
+  "files": [
     {
-      "id": "64a7b3c2d1e0f",
-      "name": "My Documents",
-      "owner_id": "user123",
-      "created_at": "2024-03-15T10:30:00Z",
-      "updated_at": "2024-03-15T10:30:00Z"
-    },
-    {
-      "id": "75b8c4d3e2f1g",
-      "name": "Photos",
-      "owner_id": "user123",
-      "created_at": "2024-03-16T14:20:00Z",
-      "updated_at": "2024-03-16T14:20:00Z"
+      "id": "file-id-1",
+      "filename": "example.jpg",
+      "file_type": "image",
+      "file_size": 1024,
+      "upload_date": "2023-01-01T12:00:00",
+      "description": "Example image",
+      "download_url": "/api/files/download/file-id-1"
     }
   ]
 }
 ```
 
-## Error Codes
+**Possible Errors:**
+- 400 Bad Request: Invalid file or file type
+- 401 Unauthorized: Not authenticated
 
-| Code | Meaning | Typical Fix |
-|------|---------|-------------|
-| 400 | Invalid request format | Check request body |
-| 401 | Missing/invalid JWT | Add Authorization header |
-| 404 | Resource not found | Verify resource ID |
-| 413 | Payload too large | Reduce file size |
-| 500 | Server error | Retry with exponential backoff |
+### Download File
 
-## Storage Implementation Details
-- **MongoDB GridFS** for large file storage
-- Automatic MD5 hash generation
-- File versioning support
-- Storage quota enforcement
-- Background cleanup processes
-- Collections for organizing files
-- User-specific access control
+```
+GET /files/download/{file_id}
+```
 
-## Rate Limits
-- 100 requests/minute per IP
-- 10 concurrent uploads/user
-- 2GB max file size
-- 50 collections per user
+Download a specific file by ID.
+
+**Response:**
+- The file content with appropriate Content-Type header
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File not found
+
+### List Files
+
+```
+GET /files/files
+```
+
+Get a list of all files uploaded by the authenticated user.
+
+**Response (200 OK):**
+```json
+{
+  "files": [
+    {
+      "id": "file-id-1",
+      "filename": "example.jpg",
+      "file_type": "image",
+      "file_size": 1024,
+      "upload_date": "2023-01-01T12:00:00",
+      "description": "Example image",
+      "download_url": "/api/files/download/file-id-1"
+    },
+    {
+      "id": "file-id-2",
+      "filename": "document.pdf",
+      "file_type": "document",
+      "file_size": 2048,
+      "upload_date": "2023-01-02T12:00:00",
+      "description": "Example document",
+      "download_url": "/api/files/download/file-id-2"
+    }
+  ]
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+
+### Get File Details
+
+```
+GET /files/files/{file_id}
+```
+
+Get details about a specific file.
+
+**Response (200 OK):**
+```json
+{
+  "id": "file-id-1",
+  "filename": "example.jpg",
+  "file_type": "image",
+  "file_size": 1024,
+  "upload_date": "2023-01-01T12:00:00",
+  "description": "Example image",
+  "download_url": "/api/files/download/file-id-1"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File not found
+
+### Delete File
+
+```
+DELETE /files/files/{file_id}
+```
+
+Delete a specific file.
+
+**Response (200 OK):**
+```json
+{
+  "message": "File deleted successfully"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File not found
+
+### Add File to Collection
+
+```
+POST /files/files/{file_id}/add-to-collection
+```
+
+Add a file to a collection.
+
+**Request Body:**
+```json
+{
+  "collection_id": "collection-id"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "File added to collection successfully"
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid input
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File or collection not found
+
+### Remove File from Collection
+
+```
+DELETE /files/files/{file_id}/remove-from-collection/{collection_id}
+```
+
+Remove a file from a collection.
+
+**Response (200 OK):**
+```json
+{
+  "message": "File removed from collection successfully"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: File or collection not found
+
+## Collection Management
+
+### List Collections
+
+```
+GET /collections
+```
+
+Get a list of all collections created by the authenticated user.
+
+**Response (200 OK):**
+```json
+{
+  "collections": [
+    {
+      "id": "collection-id-1",
+      "name": "My Images",
+      "owner_id": "user-id",
+      "created_at": "2023-01-01T12:00:00",
+      "updated_at": "2023-01-01T12:00:00"
+    },
+    {
+      "id": "collection-id-2",
+      "name": "Documents",
+      "owner_id": "user-id",
+      "created_at": "2023-01-02T12:00:00",
+      "updated_at": "2023-01-02T12:00:00"
+    }
+  ]
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+
+### Create Collection
+
+```
+POST /collections
+```
+
+Create a new collection.
+
+**Request Body:**
+```json
+{
+  "name": "My New Collection"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "message": "Collection created successfully",
+  "collection": {
+    "id": "new-collection-id",
+    "name": "My New Collection",
+    "owner_id": "user-id",
+    "created_at": "2023-01-03T12:00:00",
+    "updated_at": "2023-01-03T12:00:00"
+  }
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid input
+- 401 Unauthorized: Not authenticated
+
+### Get Collection Details
+
+```
+GET /collections/{collection_id}
+```
+
+Get details about a specific collection.
+
+**Response (200 OK):**
+```json
+{
+  "id": "collection-id-1",
+  "name": "My Images",
+  "owner_id": "user-id",
+  "created_at": "2023-01-01T12:00:00",
+  "updated_at": "2023-01-01T12:00:00"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Collection not found
+
+### Update Collection
+
+```
+PUT /collections/{collection_id}
+```
+
+Update a collection's details.
+
+**Request Body:**
+```json
+{
+  "name": "Updated Collection Name"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Collection updated successfully",
+  "collection": {
+    "id": "collection-id-1",
+    "name": "Updated Collection Name",
+    "owner_id": "user-id",
+    "created_at": "2023-01-01T12:00:00",
+    "updated_at": "2023-01-03T12:00:00"
+  }
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid input
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Collection not found
+
+### Delete Collection
+
+```
+DELETE /collections/{collection_id}
+```
+
+Delete a specific collection.
+
+**Response (200 OK):**
+```json
+{
+  "message": "Collection deleted successfully"
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Collection not found
+
+### Get Files in Collection
+
+```
+GET /collections/{collection_id}/files
+```
+
+Get all files in a specific collection.
+
+**Response (200 OK):**
+```json
+{
+  "collection_id": "collection-id-1",
+  "collection_name": "My Images",
+  "files": [
+    {
+      "id": "file-id-1",
+      "filename": "example.jpg",
+      "file_type": "image",
+      "file_size": 1024,
+      "upload_date": "2023-01-01T12:00:00",
+      "description": "Example image",
+      "download_url": "/api/files/download/file-id-1"
+    }
+  ]
+}
+```
+
+**Possible Errors:**
+- 401 Unauthorized: Not authenticated
+- 404 Not Found: Collection not found

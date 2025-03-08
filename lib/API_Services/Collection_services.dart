@@ -87,4 +87,26 @@ class CollectionService {
       throw Exception('Lỗi khi lấy chi tiết bộ sưu tập: $e');
     }
   }
+  
+  // Get all files in a collection
+  Future<Map<String, dynamic>> getCollectionFiles(String collectionId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/$collectionId/files'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['message'] ?? 'Không thể tải danh sách tệp tin');
+      }
+    } catch (e) {
+      throw Exception('Lỗi khi lấy danh sách tệp tin trong bộ sưu tập: $e');
+    }
+  }
 } 

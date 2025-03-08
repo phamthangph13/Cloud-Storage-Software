@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'utils/display_utils.dart';
+import 'utils/collection_dialog.dart';
 import '../API_Services/File_services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -497,6 +498,22 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                 break;
               case 'collection':
                 // Implement save to collection
+                _getToken().then((token) {
+                  if (token.isNotEmpty) {
+                    showCollectionDialog(
+                      context,
+                      fileId: item['id'],
+                      token: token,
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Unable to authenticate. Please log in again.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                });
                 break;
               case 'favorite':
                 // Implement favorite

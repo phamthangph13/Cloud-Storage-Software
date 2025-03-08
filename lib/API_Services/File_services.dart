@@ -25,6 +25,53 @@ class FileService {
   // Demo mode control
   static bool _forceShowDemoMode = false;
   
+  // Add file to collection
+  Future<Map<String, dynamic>> addFileToCollection(String fileId, String collectionId, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseApiUrl/files/files/$fileId/add-to-collection'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'collection_id': collectionId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['message'] ?? 'Failed to add file to collection');
+      }
+    } catch (e) {
+      throw Exception('Error adding file to collection: $e');
+    }
+  }
+  
+  // Remove file from collection
+  Future<Map<String, dynamic>> removeFileFromCollection(String fileId, String collectionId, String token) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseApiUrl/files/files/$fileId/remove-from-collection/$collectionId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['message'] ?? 'Failed to remove file from collection');
+      }
+    } catch (e) {
+      throw Exception('Error removing file from collection: $e');
+    }
+  }
+  
   // Upload a single file with optional tags and storage path
   Future<Map<String, dynamic>> uploadFile(
     File file, 
