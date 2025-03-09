@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../API_Services/Collection_services.dart';
+import '../../API_Services/Restore_services.dart';
 import 'collection_view.dart';
 
 class StorageScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class StorageScreen extends StatefulWidget {
 
 class _StorageScreenState extends State<StorageScreen> {
   final CollectionService _collectionService = CollectionService();
+  final RestoreService _restoreService = RestoreService();
   List<dynamic> _collections = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -43,6 +45,161 @@ class _StorageScreenState extends State<StorageScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  // Method to move a collection to trash
+  Future<void> _moveCollectionToTrash(String collectionId, String collectionName) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Chuyển vào thùng rác?'),
+        content: Text('Bạn có chắc chắn muốn chuyển bộ sưu tập "$collectionName" vào thùng rác không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Chuyển vào thùng rác'),
+          ),
+        ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+      ),
+    ) ?? false;
+
+    if (confirm) {
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+        
+        print("Attempting to delete collection with ID: $collectionId");
+        final result = await _collectionService.moveCollectionToTrash(collectionId, widget.token);
+        
+        setState(() {
+          _isLoading = false;
+        });
+        
+        if (result['success'] == false) {
+          if (context.mounted) {
+            String errorMessage = result['message'] ?? 'Lỗi khi chuyển vào thùng rác';
+            
+            // Handle specific error cases
+            if (errorMessage.contains('Invalid collection ID')) {
+              errorMessage = 'Mã bộ sưu tập không hợp lệ. Vui lòng thử lại sau.';
+            }
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessage),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                action: result['status_code'] == 401 
+                  ? SnackBarAction(
+                      label: 'Đăng nhập lại',
+                      onPressed: () {
+                        // Navigate to login screen
+                        // Navigator.pushReplacementNamed(context, '/login');
+                      },
+                    )
+                  : null,
+              ),
+            );
+            
+            // If it's an ID issue, refresh the collections to get current data
+            if (errorMessage.contains('Mã bộ sưu tập không hợp lệ')) {
+              _loadCollections();
+            }
+          }
+        } else {
+          if (context.mounted) {
+            // Show success snackbar with undo option
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.delete, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Text('Đã chuyển "$collectionName" vào thùng rác'),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                action: SnackBarAction(
+                  label: 'Khôi phục',
+                  textColor: Colors.white,
+                  onPressed: () async {
+                    try {
+                      await _restoreService.restoreCollection(collectionId, widget.token);
+                      // Reload collections after restore
+                      _loadCollections();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Đã khôi phục "$collectionName"'),
+                            backgroundColor: Colors.blue,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Lỗi khi khôi phục: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            );
+            
+            // Reload collections after moving to trash
+            _loadCollections();
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -528,7 +685,7 @@ class _StorageScreenState extends State<StorageScreen> {
                                         icon: const Icon(Icons.delete, color: Colors.red),
                                         label: const Text('Xóa', style: TextStyle(color: Colors.red)),
                                         onPressed: () {
-                                          // TODO: Implement delete functionality
+                                          _moveCollectionToTrash(collectionId, collectionName);
                                         },
                                       ),
                                     ],

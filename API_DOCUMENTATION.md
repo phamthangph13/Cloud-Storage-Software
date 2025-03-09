@@ -71,6 +71,27 @@ Verify a user's email address using the token sent to their email.
 **Possible Errors:**
 - 400 Bad Request: Invalid or expired token
 
+### Verify Email Link
+
+```
+GET /auth/verify-email-link?token={token}
+```
+
+Alternative endpoint to verify a user's email address via a direct link.
+
+**Parameters:**
+- `token` (query string): The verification token from the email
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully"
+}
+```
+
+**Possible Errors:**
+- 400 Bad Request: Invalid or expired token
+
 ### Login
 
 ```
@@ -612,8 +633,8 @@ Restore a collection from trash.
 ### Permanently Delete Item
 
 ```
-DELETE /api/restore/trash/{item_id}
 DELETE /api/trash/{item_id}
+DELETE /api/restore/{item_id}
 ```
 
 Permanently delete an item from trash.
