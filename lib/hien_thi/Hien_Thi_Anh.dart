@@ -653,9 +653,6 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                 }
                 break;
               case 'download':
-                final tempDir = await getTemporaryDirectory();
-                final savePath = '${tempDir.path}/${item['filename']}';
-                
                 // Sử dụng token đã lấy ở trên
                 if (token.isEmpty && !item['id'].toString().startsWith('demo-')) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -668,25 +665,15 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                   // Nếu là demo data, giả lập việc tải xuống thành công
                   if (item['id'].toString().startsWith('demo-')) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
+                      SnackBar(content: Text('Đã tải xuống (chế độ demo)')),
                     );
-                  } else {
-                    final file = await _fileService.downloadFile(
-                      item['id'], 
-                      token: token, 
-                      savePath: savePath
-                    );
-                    if (file != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Đã tải xuống: ${item['filename']}')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Không thể tải xuống tệp tin')),
-                      );
-                    }
+                    return;
                   }
+                  
+                  // Tải xuống trực tiếp vào thư mục tạm
+                  _downloadToTempFolder(item, token);
                 } catch (e) {
+                  print('Lỗi khi tải xuống: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Lỗi: ${e.toString()}')),
                   );
@@ -1124,9 +1111,9 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                 ),
               ],
             ),
-          ).animate().fade(duration: 300.ms, curve: Curves.easeInOut),
+          ).animate().fade(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
         );
-      }
+      },
     );
   }
   
@@ -1417,9 +1404,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                             textStyle: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                      ).animate().fadeIn(delay: 100.ms, duration: 200.ms),
-                      
-              
+                      ),
                       
                       const SizedBox(height: 8),
                       
@@ -1442,7 +1427,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                             ),
                           ),
                         ),
-                      ).animate().fadeIn(delay: 200.ms, duration: 200.ms),
+                      ),
                       
                       const SizedBox(height: 8),
                       
@@ -1459,7 +1444,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
                           ),
                           child: const Text('Hủy'),
                         ),
-                      ).animate().fadeIn(delay: 250.ms, duration: 200.ms),
+                      ),
                     ],
                   ),
                 ],
@@ -1467,7 +1452,72 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
             ),
           ],
         ),
-      ).animate().fade(duration: 300.ms, curve: Curves.easeInOut),
+      ),
     );
+  }
+
+  Future<void> _downloadToTempFolder(Map<String, dynamic> item, String token) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final savePath = '${tempDir.path}/${item['filename']}';
+      
+      // Hiển thị đang tải
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Đang tải xuống ${item['filename']}...'),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Sử dụng tải xuống tối ưu cho thiết bị di động
+      final file = await _fileService.mobileDownloadFile(
+        item['id'], 
+        token: token, 
+        savePath: savePath
+      );
+      
+      if (file != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã tải xuống: ${item['filename']}'),
+            action: SnackBarAction(
+              label: 'Mở',
+              onPressed: () async {
+                // Thử mở tệp tin bằng khả năng của nền tảng
+                try {
+                  Share.shareXFiles([XFile(file.path)], text: 'Chia sẻ ${item['filename']}');
+                } catch (e) {
+                  print('Lỗi khi mở tệp tin: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không thể mở tệp tin')),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tải xuống tệp tin')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi tải xuống: ${e.toString()}')),
+      );
+    }
   }
 }

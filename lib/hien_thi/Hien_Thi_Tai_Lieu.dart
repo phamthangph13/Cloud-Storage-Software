@@ -609,44 +609,32 @@ class _DocumentViewScreenState extends State<DocumentViewScreen> {
                 }
                 break;
               case 'download':
-                final tempDir = await getTemporaryDirectory();
-                final savePath = '${tempDir.path}/${item['filename']}';
-                
-                // Use token retrieved above
+                // Sử dụng token đã lấy ở trên
                 if (token.isEmpty && !item['id'].toString().startsWith('demo-')) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('You need to be logged in to download')),
+                    const SnackBar(content: Text('Bạn cần đăng nhập để tải xuống')),
                   );
                   return;
                 }
                 
                 try {
-                  // If demo data, simulate successful download
+                  // Nếu là demo data, giả lập việc tải xuống thành công
                   if (item['id'].toString().startsWith('demo-')) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Downloaded: ${item['filename']}')),
+                      SnackBar(content: Text('Đã tải xuống (chế độ demo)')),
                     );
-                  } else {
-                    final file = await _fileService.downloadFile(
-                      item['id'], 
-                      token: token,
-                      savePath: savePath
-                    );
-                    if (file != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Downloaded: ${item['filename']}')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not download file')),
-                      );
-                    }
+                    return;
                   }
+                  
+                  // Tải xuống tài liệu vào thư mục tạm
+                  _downloadToTempFolder(item, token);
                 } catch (e) {
+                  print('Lỗi khi tải xuống: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${e.toString()}')),
+                    SnackBar(content: Text('Lỗi: ${e.toString()}')),
                   );
                 }
+                break;
             }
           },
           itemBuilder: (BuildContext context) => [
@@ -1769,5 +1757,71 @@ class _DocumentViewScreenState extends State<DocumentViewScreen> {
         ),
       ).animate().fade(duration: 300.ms, curve: Curves.easeInOut),
     );
+  }
+
+  // Method to download document to temporary folder
+  Future<void> _downloadToTempFolder(Map<String, dynamic> item, String token) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final savePath = '${tempDir.path}/${item['filename']}';
+      
+      // Hiển thị đang tải
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Đang tải xuống ${item['filename']}...'),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Sử dụng tải xuống tối ưu cho thiết bị di động
+      final file = await _fileService.mobileDownloadFile(
+        item['id'], 
+        token: token, 
+        savePath: savePath
+      );
+      
+      if (file != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã tải xuống: ${item['filename']}'),
+            action: SnackBarAction(
+              label: 'Chia sẻ',
+              onPressed: () async {
+                // Thử mở tệp tin bằng khả năng của nền tảng
+                try {
+                  Share.shareXFiles([XFile(file.path)], text: 'Chia sẻ tài liệu: ${item['filename']}');
+                } catch (e) {
+                  print('Lỗi khi chia sẻ tệp tin: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không thể chia sẻ tệp tin')),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể tải xuống tệp tin')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi tải xuống: ${e.toString()}')),
+      );
+    }
   }
 }

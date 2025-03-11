@@ -409,6 +409,73 @@ class FileService {
     }
   }
 
+  // Mobile optimized download file
+  Future<File?> mobileDownloadFile(String fileId, {String? token, required String savePath}) async {
+    // If it's a demo file, just return null
+    if (fileId.startsWith('demo-')) {
+      return null;
+    }
+    
+    try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
+      final downloadUrl = '$baseApiUrl/files/mobile-download/$fileId';
+      
+      if (_debugMode) {
+        print('Mobile download request to: $downloadUrl');
+      }
+      
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      
+      // Add headers optimized for mobile
+      request.headers.addAll({
+        'Authorization': 'Bearer $authToken',
+        'Accept': '*/*',
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'Flutter/MobileApp',
+      });
+      
+      // Create a client to send the request
+      final client = http.Client();
+      
+      try {
+        // Send the request as a stream
+        final streamedResponse = await client.send(request)
+            .timeout(const Duration(seconds: 60));
+        
+        if (streamedResponse.statusCode == 200) {
+          // Create file for writing
+          final file = File(savePath);
+          final sink = file.openWrite();
+          
+          // Write file as it streams in
+          await streamedResponse.stream.pipe(sink);
+          
+          // Close the file
+          await sink.close();
+          
+          return file;
+        } else if (streamedResponse.statusCode == 401) {
+          print('Authentication failed: 401 Unauthorized');
+        } else if (streamedResponse.statusCode == 403) {
+          print('Permission denied: 403 Forbidden');
+        } else if (streamedResponse.statusCode == 404) {
+          print('File not found: 404 Not Found');
+        } else {
+          print('Unexpected status code: ${streamedResponse.statusCode}');
+        }
+        
+        return null;
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      print('Error in mobile download: ${e.toString()}');
+      return null;
+    }
+  }
+
   // Delete a file
   Future<bool> deleteFile(String fileId, {String? token}) async {
     try {
@@ -458,6 +525,59 @@ class FileService {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+  
+  // Lưu ảnh vào thư viện ảnh trên thiết bị
+  Future<Map<String, dynamic>> saveImageToGallery(String fileId, {String? token}) async {
+    // Nếu là demo file, trả về kết quả giả
+    if (fileId.startsWith('demo-')) {
+      return {
+        'success': true,
+        'isDemo': true,
+        'message': 'Đã lưu ảnh demo vào thư viện'
+      };
+    }
+    
+    try {
+      // Chú ý: Do plugin ImageGallerySaver đã bị loại bỏ, chúng ta không thể lưu trực tiếp vào thư viện ảnh
+      // Chuyển hướng sang tải xuống thông thường
+      
+      // Lấy token nếu không được cung cấp
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
+      if (authToken.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Không có token xác thực'
+        };
+      }
+      
+      // Tải ảnh
+      final Uint8List? imageBytes = await getImageBytes(fileId, token: authToken);
+      
+      if (imageBytes == null) {
+        return {
+          'success': false,
+          'message': 'Không thể tải ảnh từ máy chủ'
+        };
+      }
+      
+      // Không thể lưu vào thư viện ảnh, chỉ trả về lỗi để chuyển hướng sang tải xuống thông thường
+      return {
+        'success': false,
+        'message': 'Chức năng lưu vào thư viện ảnh không khả dụng, sẽ tải xuống thư mục tạm',
+        'needDownload': true
+      };
+    } catch (e) {
+      if (_debugMode) {
+        print('Lỗi khi lưu ảnh vào gallery: ${e.toString()}');
+      }
+      return {
+        'success': false,
+        'message': 'Lỗi: ${e.toString()}',
+        'needDownload': true
+      };
     }
   }
   
