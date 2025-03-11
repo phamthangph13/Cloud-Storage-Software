@@ -481,7 +481,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
           ],
         ),
         trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
+          icon: const Icon(Icons.more_vert), 
           onSelected: (String choice) async {
             // Handle menu item selection
             final token = await _getToken();
@@ -495,6 +495,7 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
             switch (choice) {
               case 'rename':
                 // Implement rename functionality
+                _showRenameDialog(context, item);
                 break;
               case 'collection':
                 // Implement save to collection
@@ -877,6 +878,596 @@ class _ImageViewScreenState extends State<ImageViewScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, Map<String, dynamic> item) {
+    // Get current filename without extension
+    final String currentFilename = item['filename'] ?? '';
+    final String fileExtension = currentFilename.contains('.')
+        ? currentFilename.substring(currentFilename.lastIndexOf('.'))
+        : '';
+    final String filenameWithoutExt = currentFilename.contains('.')
+        ? currentFilename.substring(0, currentFilename.lastIndexOf('.'))
+        : currentFilename;
+    
+    // Create the controller inside the dialog to ensure proper lifecycle management
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation1, animation2) => Container(),
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+        
+        return ScaleTransition(
+          scale: Tween<double>(begin: 0.8, end: 1.0).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
+            child: _buildRenameDialogContent(dialogContext, item, filenameWithoutExt, fileExtension),
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildRenameDialogContent(BuildContext dialogContext, Map<String, dynamic> item, 
+      String filenameWithoutExt, String fileExtension) {
+    final TextEditingController renameController = TextEditingController(text: filenameWithoutExt);
+    bool isButtonEnabled = true;
+    
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: 340,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with icon
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.1),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.edit, color: Colors.blue),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'Đổi tên file',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Current file info
+                      Row(
+                        children: [
+                          Icon(
+                            item['id'].toString().startsWith('demo-') ? Icons.image : Icons.image,
+                            color: Colors.grey.shade600, 
+                            size: 16
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Tên hiện tại: $filenameWithoutExt$fileExtension',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // New name input
+                      TextField(
+                        controller: renameController,
+                        autofocus: true,
+                        onChanged: (value) {
+                          setState(() {
+                            isButtonEnabled = value.trim().isNotEmpty;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Tên mới',
+                          hintText: 'Nhập tên mới cho file',
+                          prefixIcon: const Icon(Icons.text_fields, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Extension info
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'Đuôi mở rộng: $fileExtension',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Action buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Cancel button
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                            child: Text(
+                              'Hủy',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(width: 12),
+                          
+                          // Save button
+                          ElevatedButton(
+                            onPressed: isButtonEnabled ? () {
+                              final newName = renameController.text.trim() + fileExtension;
+                              Navigator.of(dialogContext).pop();
+                              _processRename(item, newName);
+                            } : null,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check, size: 18),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Lưu',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fade(duration: 300.ms, curve: Curves.easeInOut),
+        );
+      }
+    );
+  }
+  
+  // Separate method to process the rename after dialog is closed
+  Future<void> _processRename(Map<String, dynamic> item, String newFilename, {bool force = false}) async {
+    // If filename is empty, do nothing
+    if (newFilename.isEmpty) {
+      return;
+    }
+    
+    // Check if demo mode
+    if (item['id'].toString().startsWith('demo-')) {
+      // Handle rename in demo mode
+      setState(() {
+        item['filename'] = newFilename;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã đổi tên thành: $newFilename (chế độ demo)')),
+      );
+      return;
+    }
+    
+    // Show loading indicator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('Đang đổi tên...'),
+          ],
+        ),
+        duration: Duration(seconds: 1),
+      ),
+    );
+    
+    try {
+      final token = await _getToken();
+      if (token.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn cần đăng nhập để thực hiện thao tác này')),
+        );
+        return;
+      }
+      
+      final result = await _fileService.renameFile(item['id'], newFilename, token: token, force: force);
+      
+      if (result['success'] == false) {
+        if (result['status_code'] == 401) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.')),
+          );
+        } else if (result['status_code'] == 409 && result['requires_confirmation']) {
+          // Handle name conflict
+          _showNameConflictDialog(item, newFilename, result['suggestion']);
+          return;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: ${result['message'] ?? "Không thể đổi tên file"}')),
+          );
+        }
+        return;
+      }
+      
+      // Update the filename in the local list
+      setState(() {
+        if (result['file'] != null && result['file']['filename'] != null) {
+          item['filename'] = result['file']['filename'];
+        } else {
+          item['filename'] = newFilename;
+        }
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã đổi tên thành: ${item['filename']}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: ${e.toString()}')),
+      );
+    }
+  }
+  
+  // Show dialog for name conflict
+  void _showNameConflictDialog(Map<String, dynamic> item, String originalName, String suggestedName) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation1, animation2) => Container(),
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOutCubic,
+        );
+        
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(curvedAnimation),
+          child: FadeTransition(
+            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curvedAnimation),
+            child: _buildNameConflictDialogContent(dialogContext, item, originalName, suggestedName),
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildNameConflictDialogContent(BuildContext dialogContext, Map<String, dynamic> item,
+      String originalName, String suggestedName) {
+    return Dialog(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 340,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              spreadRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header with warning icon
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withOpacity(0.1),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Trùng tên file',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Current filename with conflict
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline, 
+                        color: Colors.orange.shade800, 
+                        size: 20
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Đã tồn tại file có tên "$originalName"',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Suggested name
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade100),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tên đề xuất:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.text_fields, color: Colors.blue, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                suggestedName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Options text
+                  Text(
+                    'Bạn muốn:',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Action buttons in a column for better spacing
+                  Column(
+                    children: [
+                      // Use suggested name button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          label: const Text('Dùng tên đề xuất'),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            _processRename(item, suggestedName);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 100.ms, duration: 200.ms),
+                      
+              
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Use another name
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.edit, size: 18),
+                          label: const Text('Đổi tên khác'),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            _showRenameDialog(context, item);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: Colors.blue.shade700,
+                            side: BorderSide(color: Colors.blue.shade300),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 200.ms, duration: 200.ms),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Cancel button
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: Colors.grey.shade700,
+                          ),
+                          child: const Text('Hủy'),
+                        ),
+                      ).animate().fadeIn(delay: 250.ms, duration: 200.ms),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ).animate().fade(duration: 300.ms, curve: Curves.easeInOut),
     );
   }
 }

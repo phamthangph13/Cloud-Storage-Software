@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://192.168.1.3:5000/api/auth';
+  static const String baseUrl = 'http://10.0.2.2:5000/api/auth';
   static const String _tokenKey = 'auth_token';
   
   // Singleton pattern

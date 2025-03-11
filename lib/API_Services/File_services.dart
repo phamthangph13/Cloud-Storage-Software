@@ -18,7 +18,7 @@ class FileService {
   static final FileService _instance = FileService._internal();
   factory FileService() => _instance;
   FileService._internal();
-  
+   
   // Reference to auth service
   final AuthService _authService = AuthService();
   
@@ -563,6 +563,78 @@ class FileService {
       return {
         'success': false,
         'message': 'Error moving file to trash: ${e.toString()}'
+      };
+    }
+  }
+
+  // Rename a file
+  Future<Map<String, dynamic>> renameFile(String fileId, String newFilename, {String? token, bool force = false}) async {
+    try {
+      // Get token if not provided
+      final String authToken = token ?? (await _authService.getToken() ?? '');
+      
+      if (_debugMode) {
+        print('Renaming file: $fileId to $newFilename');
+        print('Token available: ${authToken.isNotEmpty}');
+      }
+      
+      final renameUrl = '$filesUrl/$fileId';
+      
+      final response = await http.put(
+        Uri.parse(renameUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: jsonEncode({
+          'new_filename': newFilename,
+          'force': force,
+        }),
+      );
+      
+      if (_debugMode) {
+        print('Rename API response code: ${response.statusCode}');
+        print('Rename API response body: ${response.body}');
+      }
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 409) {
+        // Handle conflict - file with same name exists
+        final Map<String, dynamic> errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['message'] ?? 'A file with this name already exists',
+          'suggestion': errorData['suggestion'],
+          'requires_confirmation': true,
+          'status_code': 409
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Authentication failed. Your session may have expired. Please log in again.',
+          'status_code': 401
+        };
+      } else {
+        try {
+          final errorBody = jsonDecode(response.body);
+          return {
+            'success': false,
+            'message': errorBody['message'] ?? 'Failed to rename file',
+            'status_code': response.statusCode
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Failed to rename file: Unknown error',
+            'status_code': response.statusCode
+          };
+        }
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error renaming file: ${e.toString()}'
       };
     }
   }
