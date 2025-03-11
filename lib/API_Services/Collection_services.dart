@@ -236,4 +236,53 @@ class CollectionService {
       };
     }
   }
+
+  // Rename a collection
+  Future<Map<String, dynamic>> renameCollection(String collectionId, String newName, String token, {bool force = false}) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/$collectionId/rename'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'new_name': newName,
+          'force': force,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 409) {
+        // Handle conflict - collection with same name exists
+        final Map<String, dynamic> errorData = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorData['message'] ?? 'A collection with this name already exists',
+          'suggestion': errorData['suggestion'],
+          'requires_confirmation': true,
+          'status_code': 409
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Authentication failed. Your session may have expired. Please log in again.',
+          'status_code': 401
+        };
+      } else {
+        final errorBody = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': errorBody['message'] ?? 'Failed to rename collection',
+          'status_code': response.statusCode
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error renaming collection: ${e.toString()}'
+      };
+    }
+  }
 } 

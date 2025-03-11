@@ -11,7 +11,7 @@ class StorageScreen extends StatefulWidget {
   const StorageScreen({super.key, this.showBackButton = true, required this.token});
 
   @override
-  State<StorageScreen> createState() => _StorageScreenState();
+  State<StorageScreen> createState() => _StorageScreenState(); 
 }
 
 class _StorageScreenState extends State<StorageScreen> {
@@ -450,6 +450,334 @@ class _StorageScreenState extends State<StorageScreen> {
     );
   }
 
+  // Method to rename a collection
+  Future<void> _renameCollection(String collectionId, String currentName) async {
+    final nameController = TextEditingController(text: currentName);
+    bool isRenaming = false;
+    String? errorMessage;
+    String? suggestion;
+    bool requiresConfirmation = false;
+    
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (_, __, ___) => StatefulBuilder(
+        builder: (context, setState) {
+          return AnimatedOpacity(
+            duration: const Duration(milliseconds: 400),
+            opacity: 1.0,
+            child: AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              contentPadding: EdgeInsets.zero,
+              content: Container(
+                width: 320,
+                padding: EdgeInsets.zero,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with gradient
+                    Container(
+                      height: 100,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade400, Colors.blue.shade700],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.drive_file_rename_outline,
+                          size: 50,
+                          color: Colors.white,
+                        ).animate()
+                          .fadeIn(duration: 600.ms)
+                          .scale(delay: 200.ms),
+                      ),
+                    ),
+                    
+                    // Title
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                      child: Text(
+                        'Đổi tên bộ sưu tập',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue.shade700,
+                        ),
+                      ).animate()
+                        .fadeIn(duration: 600.ms)
+                        .moveY(begin: 10, end: 0, delay: 100.ms),
+                    ),
+                    
+                    // Description
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+                      child: Text(
+                        'Nhập tên mới cho bộ sưu tập của bạn',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ).animate()
+                        .fadeIn(duration: 600.ms)
+                        .moveY(begin: 10, end: 0, delay: 200.ms),
+                    ),
+                    
+                    // Input field
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
+                      child: TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          hintText: 'Tên bộ sưu tập',
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: Icon(Icons.folder, color: Colors.blue.shade400),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 16),
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                      ).animate()
+                        .fadeIn(duration: 600.ms)
+                        .moveY(begin: 10, end: 0, delay: 300.ms),
+                    ),
+                    
+                    // Error message
+                    if (errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+                        child: Text(
+                          errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ).animate()
+                          .fadeIn(duration: 300.ms),
+                      ),
+                    
+                    // Suggestion message
+                    if (suggestion != null && requiresConfirmation)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10, left: 20, right: 20),
+                        child: Column(
+                          children: [
+                            Text(
+                              'Đã tồn tại bộ sưu tập với tên này.',
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Gợi ý: ',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      nameController.text = suggestion!;
+                                    });
+                                  },
+                                  child: Text(
+                                    suggestion!,
+                                    style: TextStyle(
+                                      color: Colors.blue.shade700,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ).animate()
+                          .fadeIn(duration: 300.ms),
+                      ),
+                    
+                    // Buttons
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Cancel button
+                          TextButton(
+                            onPressed: isRenaming 
+                                ? null 
+                                : () => Navigator.pop(context),
+                            child: Text(
+                              'Hủy',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ).animate()
+                            .fadeIn(duration: 600.ms)
+                            .moveX(begin: -10, end: 0, delay: 400.ms),
+                          
+                          // Submit button with loading indicator
+                          ElevatedButton(
+                            onPressed: isRenaming 
+                                ? null 
+                                : () async {
+                                    if (nameController.text.trim().isNotEmpty) {
+                                      setState(() {
+                                        isRenaming = true;
+                                        errorMessage = null;
+                                      });
+                                      
+                                      try {
+                                        // If we're using the suggestion after a conflict
+                                        bool useForce = requiresConfirmation && 
+                                                      nameController.text == suggestion;
+                                        
+                                        final result = await _collectionService.renameCollection(
+                                          collectionId,
+                                          nameController.text.trim(), 
+                                          widget.token,
+                                          force: useForce
+                                        );
+                                        
+                                        if (result['success'] == false) {
+                                          // Handle conflict specifically
+                                          if (result['status_code'] == 409) {
+                                            setState(() {
+                                              isRenaming = false;
+                                              errorMessage = result['message'];
+                                              suggestion = result['suggestion'];
+                                              requiresConfirmation = result['requires_confirmation'] ?? false;
+                                            });
+                                            return;
+                                          } else {
+                                            setState(() {
+                                              isRenaming = false;
+                                              errorMessage = result['message'];
+                                            });
+                                            return;
+                                          }
+                                        }
+                                        
+                                        // Rename successful
+                                        if (context.mounted) {
+                                          Navigator.of(context).pop();
+                                          
+                                          // Show success indicator
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Row(
+                                                children: [
+                                                  const Icon(Icons.check_circle, color: Colors.white),
+                                                  const SizedBox(width: 10),
+                                                  Text('Đã đổi tên thành "${nameController.text.trim()}"'),
+                                                ],
+                                              ),
+                                              backgroundColor: Colors.green,
+                                              behavior: SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                          );
+                                          
+                                          // Refresh collections list
+                                          _loadCollections();
+                                        }
+                                      } catch (e) {
+                                        setState(() {
+                                          isRenaming = false;
+                                          errorMessage = 'Lỗi: ${e.toString()}';
+                                        });
+                                      }
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade500,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: isRenaming
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Lưu',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                          ).animate()
+                            .fadeIn(duration: 600.ms)
+                            .moveX(begin: 10, end: 0, delay: 400.ms),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+      ),
+      transitionBuilder: (_, animation, __, child) {
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 0.3),
+            end: const Offset(0, 0),
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutBack,
+            ),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -678,7 +1006,7 @@ class _StorageScreenState extends State<StorageScreen> {
                                         icon: const Icon(Icons.edit),
                                         label: const Text('Đổi tên'),
                                         onPressed: () {
-                                          // TODO: Implement rename functionality
+                                          _renameCollection(collectionId, collectionName);
                                         },
                                       ),
                                       TextButton.icon(
